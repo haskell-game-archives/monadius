@@ -29,10 +29,10 @@ jobs:
         path: ~/.cabal/store
         key: ${{ runner.os }}-${{ matrix.ghc }}-${{ matrix.cache-version }}-cabal
 
-    # - name: Install libralies
-    #   run: |
-    #     sudo apt-get update
-    #     sudo apt-get install -y libgirepository1.0-dev libwebkit2gtk-4.0-dev libgtksourceview-3.0-dev
+    - name: Install libralies
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y freeglut3-dev
 
     - name: Install dependencies
       run: |

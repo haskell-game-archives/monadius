@@ -24,11 +24,11 @@ jobs:
         stack-version: "2.5.1"
         enable-stack: true
 
-    # - name: Install libralies (linux)
-    #   if: runner.os == 'Linux'
-    #   run: |
-    #     sudo apt-get update
-    #     sudo apt-get install -y libgirepository1.0-dev libwebkit2gtk-4.0-dev libgtksourceview-3.0-dev
+    - name: Install libralies (linux)
+      if: runner.os == 'Linux'
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y freeglut3-dev
 
     # - name: Install libralies (mac)
     #   if: runner.os == 'macOS'
