@@ -1,4 +1,4 @@
-module Demo
+module Monadius.Demo
   ( demoData,
     ReplayInfo (..),
   )

@@ -1,6 +1,6 @@
 -- | Various numeric utility functions, particularly dealing with Complex
 -- numbers and shapes.
-module Util
+module Monadius.Util
   ( ComplexShape (..),
     Shape (..),
     angleAccuracy,
@@ -52,15 +52,24 @@ instance ComplexShape Shape where
       and [aL < bR, aB < bT, aR > bL, aT > bB]
     (Shapes {children = ss}, c) -> any (>?< c) ss
     (d, Shapes {children = ss}) -> any (d >?<) ss
+
   v +> a = case a of
     Circular {} -> a {center = center a + v}
     Rectangular {} -> a {bottomLeft = bottomLeft a + v, topRight = topRight a + v}
     Shapes {} -> a {children = map (v +>) $ children a}
 
 data Shape
-  = Circular {center :: Complex GLdouble, radius :: GLdouble}
-  | Rectangular {bottomLeft :: Complex GLdouble, topRight :: Complex GLdouble}
-  | Shapes {children :: [Shape]}
+  = Circular
+      { center :: Complex GLdouble,
+        radius :: GLdouble
+      }
+  | Rectangular
+      { bottomLeft :: Complex GLdouble,
+        topRight :: Complex GLdouble
+      }
+  | Shapes
+      { children :: [Shape]
+      }
 
 -- | Put a Rectangle coordinates into normal order so that collision will go properly.
 regulate :: Shape -> Shape
@@ -84,7 +93,7 @@ angleAccuracy division z = mkPolar r theta
     d = intToGLdouble division
 
 innerProduct :: Complex GLdouble -> Complex GLdouble -> GLdouble
-innerProduct a b = realPart $ a * conjugate b
+innerProduct a = realPart . (a *) . conjugate
 
 padding :: Char -> Int -> String -> String
 padding pad minLen str = replicate (minLen - length str) pad ++ str

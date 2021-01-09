@@ -43,11 +43,13 @@ library
 
   -- cabal-fmt: expand src
   exposed-modules:
-    Demo
-    Game
     Monadius
-    Recorder
-    Util
+    Monadius.Constant.GameObject
+    Monadius.Constant.Parameter
+    Monadius.Demo
+    Monadius.Game
+    Monadius.Recorder
+    Monadius.Util
 
 executable monadius
   import:        common

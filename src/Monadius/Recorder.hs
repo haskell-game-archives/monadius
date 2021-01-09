@@ -1,6 +1,8 @@
+{-# LANGUAGE TypeApplications #-}
+
 -- | a replay recording system.
-module Recorder
-  ( Recorder (..),
+module Monadius.Recorder
+  ( Recorder (gameBody, preEncodedKeyBuf, mode),
     initialRecorder,
     RecorderMode (..),
     encode2,
@@ -8,10 +10,10 @@ module Recorder
   )
 where
 
-import Game
 import Graphics.UI.GLUT
 import Monadius
-import Util
+import Monadius.Game hiding (age, mode)
+import Monadius.Util
 
 data Recorder = Recorder
   { keybuf :: [[Key]],
@@ -34,10 +36,14 @@ encode2 :: [Int] -> String
 encode2 = show . reverse
 
 encodeKeySet :: [Key] -> Int
-encodeKeySet keys = sum $ map (\i -> if (importantKeys !! i) `elem` keys then 2 ^ i else 0) [0 .. (length importantKeys -1)]
+encodeKeySet keys =
+  sum $
+    map
+      (\i -> if (importantKeys !! i) `elem` keys then 2 ^ i else 0)
+      [0 .. (length importantKeys - 1)]
 
 decode :: String -> [[Key]]
-decode str = map decodeKeySet (read str :: [Int])
+decode = map decodeKeySet . read @[Int]
 
 decodeKeySet :: Int -> [Key]
 decodeKeySet num = extract num importantKeys
@@ -47,7 +53,16 @@ decodeKeySet num = extract num importantKeys
     extract i (c : cs) = [c | i `mod` 2 == 1] ++ extract (i `div` 2) cs
 
 importantKeys :: [Key]
-importantKeys = [shotButton, missileButton, powerUpButton, upButton, downButton, leftButton, rightButton, selfDestructButton]
+importantKeys =
+  [ shotButton,
+    missileButton,
+    powerUpButton,
+    upButton,
+    downButton,
+    leftButton,
+    rightButton,
+    selfDestructButton
+  ]
 
 initialRecorder :: RecorderMode -> [[Key]] -> Monadius -> Recorder
 initialRecorder initialMode keyss initialGame =
@@ -76,10 +91,10 @@ renderRecorder me = do
   if age me == 0 || mode me /= Record
     then return ()
     else preservingMatrix $ do
-      translate (Vector3 300 (-230) (0 :: GLdouble))
-      scale 0.1 0.1 (0.1 :: GLdouble)
-      color (Color3 0.4 0.4 (0.4 :: GLdouble))
-      renderString Roman $ show $ (head . preEncodedKeyBuf) me
+      translate (Vector3 @GLdouble 300 (-230) 0)
+      scale @GLdouble 0.1 0.1 0.1
+      color (Color3 @GLdouble 0.4 0.4 0.4)
+      renderString Roman . show . head . preEncodedKeyBuf $ me
 
   render $ gameBody me
 

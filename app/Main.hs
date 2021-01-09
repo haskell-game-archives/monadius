@@ -11,23 +11,23 @@
 
 module Main (main) where
 
-import Control.Exception (SomeException (..), catch)
-import Control.Monad (mplus, zipWithM_)
+import Control.Exception
+import Control.Monad
 import Data.Char
 import Data.Complex
 import Data.Functor
 import Data.IORef
 import Data.List
 import Data.Maybe
-import Demo (ReplayInfo (..), demoData)
-import Game (isGameover, render, update)
 import Graphics.UI.GLUT hiding (position)
 import Monadius
-import Recorder
-import System.Directory (createDirectoryIfMissing, doesFileExist)
-import System.Environment (getArgs, getEnv)
-import System.Exit (exitSuccess)
-import Util (intToGLdouble, padding, putDebugStrLn)
+import Monadius.Demo
+import Monadius.Game (isGameover, render, update)
+import Monadius.Recorder
+import Monadius.Util
+import System.Directory
+import System.Environment
+import System.Exit
 
 data GlobalVariables = GlobalVariables
   { saveState :: (Int, Int),
