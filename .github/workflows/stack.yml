@@ -1,0 +1,47 @@
+name: stack
+
+on:
+  push:
+    branches: [master]
+  pull_request:
+  schedule:
+    - cron: "00 15 * * *"
+
+jobs:
+  build:
+    name: ${{ matrix.os }} (${{ matrix.resolver }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [ubuntu-18.04, macos-10.15]
+        resolver: ["lts-16", "nightly"]
+
+    steps:
+    - uses: actions/checkout@v2
+    - uses: haskell/actions/setup@v1
+      with:
+        ghc-version: "8.8.4"
+        stack-version: "2.5.1"
+        enable-stack: true
+
+    # - name: Install libralies (linux)
+    #   if: runner.os == 'Linux'
+    #   run: |
+    #     sudo apt-get update
+    #     sudo apt-get install -y libgirepository1.0-dev libwebkit2gtk-4.0-dev libgtksourceview-3.0-dev
+
+    # - name: Install libralies (mac)
+    #   if: runner.os == 'macOS'
+    #   run: brew install gobject-introspection gtk+ gtk+3
+
+    - name: Install dependencies
+      env:
+        STACK_YAML: stack-${{ matrix.resolver }}.yaml
+      run: stack test --only-dependencies
+
+    - name: Build
+      env:
+        STACK_YAML: stack-${{ matrix.resolver }}.yaml
+      run: |
+        stack test --fast
+        stack install --fast
