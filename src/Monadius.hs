@@ -16,7 +16,6 @@ module Monadius
   )
 where
 
-import Monadius.Constant.Parameter
 import Control.Monad
 import qualified Data.Array as Array
 import Data.Complex
@@ -24,6 +23,7 @@ import Data.List
 import Data.Maybe
 import Graphics.UI.GLUT hiding (DebugMessage, position)
 import Monadius.Constant.GameObject
+import Monadius.Constant.Parameter
 import Monadius.Game
 import Monadius.Util
 
