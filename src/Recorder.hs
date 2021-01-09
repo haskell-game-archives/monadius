@@ -44,7 +44,7 @@ decodeKeySet num = extract num importantKeys
   where
     extract 0 _ = []
     extract _ [] = []
-    extract i (c : cs) = (if i `mod` 2 == 1 then [c] else []) ++ extract (i `div` 2) cs
+    extract i (c : cs) = [c | i `mod` 2 == 1] ++ extract (i `div` 2) cs
 
 importantKeys :: [Key]
 importantKeys = [shotButton, missileButton, powerUpButton, upButton, downButton, leftButton, rightButton, selfDestructButton]

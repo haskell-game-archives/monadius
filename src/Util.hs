@@ -4,7 +4,6 @@ module Util
   ( ComplexShape (..),
     Shape (..),
     angleAccuracy,
-    filterJust,
     infinite,
     innerProduct,
     intToGLdouble,
@@ -21,6 +20,7 @@ where
 import Data.Array (Array (), Ix (), (!), (//))
 import Data.Complex
 import Data.Maybe
+import Control.Monad
 import Graphics.Rendering.OpenGL
 
 -- | Switch this to True to get debug outputs. Be careful: you get a crash under
@@ -29,10 +29,7 @@ isDebugMode :: Bool
 isDebugMode = False
 
 putDebugStrLn :: String -> IO ()
-putDebugStrLn str = if isDebugMode then putStrLn str else return ()
-
-filterJust :: [Maybe a] -> [a]
-filterJust = map fromJust . filter isJust
+putDebugStrLn str = when isDebugMode $ putStrLn str
 
 -- | Modify array 'a' at index 'i' by function 'f'
 modifyArray :: Ix i => i -> (e -> e) -> Array i e -> Array i e
@@ -43,7 +40,7 @@ class ComplexShape s where
   (>?<) :: s -> s -> Bool
 
   -- | Translation by a vector
-  (+>) :: (Complex GLdouble) -> s -> s
+  (+>) :: Complex GLdouble -> s -> s
 
 instance ComplexShape Shape where
   a >?< b = case (a, b) of
@@ -54,8 +51,8 @@ instance ComplexShape Shape where
         vr = radius b :+ radius b
     (Rectangular {bottomLeft = aL :+ aB, topRight = aR :+ aT}, Rectangular {bottomLeft = bL :+ bB, topRight = bR :+ bT}) ->
       and [aL < bR, aB < bT, aR > bL, aT > bB]
-    (Shapes {children = ss}, c) -> or $ map (>?< c) ss
-    (d, Shapes {children = ss}) -> or $ map (d >?<) ss
+    (Shapes {children = ss}, c) -> any (>?< c) ss
+    (d, Shapes {children = ss}) -> any (d >?<) ss
   v +> a = case a of
     Circular {} -> a {center = center a + v}
     Rectangular {} -> a {bottomLeft = bottomLeft a + v, topRight = topRight a + v}
@@ -84,11 +81,11 @@ angleAccuracy :: Int -> Complex GLdouble -> Complex GLdouble
 angleAccuracy division z = mkPolar r theta
   where
     (r, t) = polar z
-    theta = (intToGLdouble $ round (t / (2 * pi) * d)) / d * 2 * pi
+    theta = intToGLdouble (round (t / (2 * pi) * d)) / d * 2 * pi
     d = intToGLdouble division
 
 innerProduct :: Complex GLdouble -> Complex GLdouble -> GLdouble
-innerProduct a b = realPart $ a * (conjugate b)
+innerProduct a b = realPart $ a * conjugate b
 
 padding :: Char -> Int -> String -> String
 padding pad minLen str = replicate (minLen - length str) pad ++ str

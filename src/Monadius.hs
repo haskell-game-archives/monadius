@@ -1,3 +1,5 @@
+{-# LANGUAGE LambdaCase #-}
+
 module Monadius
   ( Monadius (..),
     initialMonadius,
@@ -14,6 +16,7 @@ module Monadius
   )
 where
 
+import Control.Monad
 import Data.Array (Array (), array, (!))
 import Data.Complex
 import Data.List
@@ -281,11 +284,26 @@ initialMonadius :: GameVariables -> Monadius
 initialMonadius initVs = Monadius (initGameVariables, initGameObjects)
   where
     initGameVariables = initVs
+
     initGameObjects =
       stars ++ [freshVicViper, freshPowerUpGauge]
-    stars = take 26 $ map (\(t, i) -> Star {tag = Nothing, position = (fix 320 t :+ fix 201 t), particleColor = colors !! i}) $ zip (map (\x -> square x + x + 41) [2346, 19091 ..]) [1 ..]
+
+    stars =
+      take 26 $
+        zipWith
+          ( \t i ->
+              Star
+                { tag = Nothing,
+                  position = fix 320 t :+ fix 201 t,
+                  particleColor = colors !! i
+                }
+          )
+          (map (\x -> square x + x + 41) [2346, 19091 ..])
+          [1 ..]
+
     fix :: Int -> Int -> GLdouble
-    fix limit value = intToGLdouble $ (value `mod` (2 * limit) - limit)
+    fix limit value = intToGLdouble (value `mod` (2 * limit) - limit)
+
     colors = [Color3 1 1 1, Color3 1 1 0, Color3 1 0 0, Color3 0 1 1] ++ colors
 
 --  ++ map (\x -> freshOption{optionTag = x}) [1..4]  -- full option inchiki
@@ -405,7 +423,7 @@ freshVicViper =
       hp = 1,
       trail = repeat $ 0 :+ 0,
       speed = 1,
-      powerUpPointer = (-1),
+      powerUpPointer = -1,
       powerUpLevels = array (0, 5) [(x, 0) | x <- [0 .. 5]],
       reloadTime = 0,
       weaponEnergy = 100,
@@ -434,10 +452,10 @@ freshScrambleHatch sign =
     { tag = Nothing,
       position = 0 :+ 0,
       hitDisp = regulate $ Rectangular ((-45) :+ 0) (45 :+ (hatchHeight * (- sign))),
-      gravity = (0 :+ sign),
+      gravity = 0 :+ sign,
       hp = hatchHP,
       age = 0,
-      launchProgram = cycle $ replicate 40 [] ++ (concat . replicate 6) ([[freshInterceptor {velocity = 0 :+ (-6) * sign}]] ++ replicate 9 []),
+      launchProgram = cycle $ replicate 40 [] ++ (concat . replicate 6) ([freshInterceptor {velocity = 0 :+ (-6) * sign}] : replicate 9 []),
       gateAngle = 0
     }
 
@@ -451,7 +469,7 @@ freshVolcano grvty =
         Shapes $ map (regulate . (\i -> Rectangular ((120 - 33 * i + 2 * i * i) :+ sign * 30 * i) ((33 * i - 2 * i * i - 120) :+ sign * 30 * (i + 1)))) [0 .. 4]
     }
   where
-    sign = (- grvty)
+    sign = - grvty
 
 freshTable :: GLdouble -> GameObject
 freshTable grvty =
@@ -459,15 +477,25 @@ freshTable grvty =
     { tag = Nothing,
       position = 0 :+ 0,
       velocity = 0 :+ 0,
-      hitDisp = Shapes $ map (regulate . (\i -> Rectangular ((-2 ** (i + 3) + shiftSinePi i) :+ sign * 30 * i) ((2 ** (i + 3) + shiftSinePi i) :+ sign * 30 * (i + 1)))) [0 .. 4]
+      hitDisp =
+        Shapes $
+          map
+            ( regulate
+                . ( \i ->
+                      Rectangular
+                        ((-2 ** (i + 3) + shiftSinePi i) :+ sign * 30 * i)
+                        ((2 ** (i + 3) + shiftSinePi i) :+ sign * 30 * (i + 1))
+                  )
+            )
+            [0 .. 4]
     }
   where
-    sign = (- grvty)
+    sign = - grvty
 
     shiftSinePi :: (Floating a) => a -> a
     shiftSinePi a = 5 * sin (a * 0.5 * pi)
 
-freshGrashia, freshJumper, freshLandRoll :: GLdouble -> GameObject
+freshGrashia :: GLdouble -> GameObject
 freshGrashia sign =
   Grashia
     { tag = Nothing,
@@ -477,10 +505,12 @@ freshGrashia sign =
       hp = 1,
       age = 0,
       hasItem = False,
-      gravity = (0 :+ sign),
+      gravity = 0 :+ sign,
       gunVector = 0 :+ 0,
       mode = 0
     }
+
+freshJumper :: GLdouble -> GameObject
 freshJumper sign =
   Jumper
     { tag = Nothing,
@@ -490,18 +520,36 @@ freshJumper sign =
       hp = 1,
       age = 0,
       hasItem = False,
-      gravity = (0 :+ 0.36 * sign),
+      gravity = 0 :+ 0.36 * sign,
       touchedLand = False,
       jumpCounter = 0
     }
+
+freshLandRoll :: GLdouble -> GameObject
 freshLandRoll sign = (freshGrashia sign) {mode = 1}
 
-freshLandScapeGround, freshSabbathicAgent :: GameObject
-freshLandScapeGround = LandScapeBlock {tag = Nothing, position = 0 :+ 0, velocity = 0 :+ 0, hitDisp = Rectangular ((-158) :+ (-20)) (158 :+ 20)}
-freshSabbathicAgent = SabbathicAgent {tag = Nothing, fever = 1}
+freshLandScapeGround :: GameObject
+freshLandScapeGround =
+  LandScapeBlock
+    { tag = Nothing,
+      position = 0 :+ 0,
+      velocity = 0 :+ 0,
+      hitDisp = Rectangular ((-158) :+ (-20)) (158 :+ 20)
+    }
+
+freshSabbathicAgent :: GameObject
+freshSabbathicAgent =
+  SabbathicAgent
+    { tag = Nothing,
+      fever = 1
+    }
 
 freshScore :: Int -> GameObject
-freshScore point = ScoreFragment {tag = Nothing, score = point}
+freshScore point =
+  ScoreFragment
+    { tag = Nothing,
+      score = point
+    }
 
 -----------------------------
 --
@@ -510,8 +558,7 @@ freshScore point = ScoreFragment {tag = Nothing, score = point}
 -----------------------------
 
 updateMonadius :: [Key] -> Monadius -> Monadius
-updateMonadius realKeys (Monadius (variables, objects)) =
-  Monadius (newVariables, newObjects)
+updateMonadius realKeys (Monadius (variables, objects)) = Monadius (newVariables, newObjects)
   where
     gameVariables = variables
     gameObjects = objects
@@ -524,9 +571,8 @@ updateMonadius realKeys (Monadius (variables, objects)) =
     (newNextTag, newObjects) =
       issueTag (nextTag variables) $
         (loadObjects ++) $
-          filterJust . map scroll $
-            concatMap updateGameObject $
-              gameObjectsAfterCollision
+          mapMaybe scroll $
+            concatMap updateGameObject gameObjectsAfterCollision
     gameObjectsAfterCollision = collide objects
 
     --   players would like to see the moment of collision.
@@ -549,9 +595,9 @@ updateMonadius realKeys (Monadius (variables, objects)) =
         goNextStage = gameClock variables > stageClearTime
         newScore =
           totalScore variables
-            + (sum)
+            + sum
               ( map
-                  ( \obj -> case obj of
+                  ( \case
                       ScoreFragment {score = p} -> p
                       _ -> 0
                   )
@@ -569,19 +615,18 @@ updateMonadius realKeys (Monadius (variables, objects)) =
       newShields
         ++ makeMetalionShots
           vic
-            { position = position vic + (vmag * (speed vic) :+ 0) * (vx :+ vy),
+            { position = position vic + (vmag * speed vic :+ 0) * (vx :+ vy),
               trail = (if isMoving then ((position vic - (10 :+ 0)) :) else id) $ trail vic,
               powerUpLevels =
-                (modifyArray gaugeOfShield (const (if (shieldCount > 0) then 1 else 0))) $
+                modifyArray gaugeOfShield (const (if shieldCount > 0 then 1 else 0)) $
                   ( if doesPowerUp
                       then
-                        ( modifyArray
-                            (powerUpPointer vic)
-                            (\x -> if x < powerUpLimits !! powerUpPointer vic then x + 1 else 0)
-                            . (if powerUpPointer vic == gaugeOfGLdouble then modifyArray gaugeOfLaser (const 0) else id) -- overpowering-up results in initial powerup level.
-                            . (if powerUpPointer vic == gaugeOfLaser then modifyArray gaugeOfGLdouble (const 0) else id) -- laser and double are
-                            --  exclusive equippment.
-                        )
+                        modifyArray
+                          (powerUpPointer vic)
+                          (\x -> if x < powerUpLimits !! powerUpPointer vic then x + 1 else 0)
+                          . (if powerUpPointer vic == gaugeOfGLdouble then modifyArray gaugeOfLaser (const 0) else id) -- overpowering-up results in initial powerup level.
+                          . (if powerUpPointer vic == gaugeOfLaser then modifyArray gaugeOfGLdouble (const 0) else id) -- laser and double are
+                          --  exclusive equippment.
                       else id
                   )
                     (powerUpLevels vic),
@@ -597,13 +642,13 @@ updateMonadius realKeys (Monadius (variables, objects)) =
             }
       where
         vx =
-          (if (rightButton `elem` keys) then 1 else 0)
-            + (if (leftButton `elem` keys) then (-1) else 0)
+          (if rightButton `elem` keys then 1 else 0)
+            + (if leftButton `elem` keys then (-1) else 0)
         vy =
-          (if (upButton `elem` keys) then 1 else 0)
-            + (if (downButton `elem` keys) then (-1) else 0)
-        vmag = if vx * vx + vy * vy > 1.1 then sqrt (0.5) else 1
-        isMoving = any (\b -> elem b keys) [rightButton, leftButton, upButton, downButton]
+          (if upButton `elem` keys then 1 else 0)
+            + (if downButton `elem` keys then (-1) else 0)
+        vmag = if vx * vx + vy * vy > 1.1 then sqrt 0.5 else 1
+        isMoving = any (`elem` keys) [rightButton, leftButton, upButton, downButton]
         doesPowerUp =
           (powerUpButton `elem` keys) && (powerUpPointer vic >= 0)
             && ( powerUpPointer vic == 0
@@ -614,16 +659,26 @@ updateMonadius realKeys (Monadius (variables, objects)) =
         shieldCount =
           sum $
             map
-              ( \o -> case o of
+              ( \case
                   Shield {} -> 1
                   _ -> 0
               )
               gameObjects
         newShields =
-          if (doesPowerUp && powerUpPointer vic == gaugeOfShield)
+          if doesPowerUp && powerUpPointer vic == gaugeOfShield
             then
-              [ freshShield {position = 350 :+ 260, placement = 40 :+ shieldPlacementMargin, angle = 30, omega = 10},
-                freshShield {position = 350 :+ (-260), placement = 40 :+ (- shieldPlacementMargin), angle = 0, omega = (-10)}
+              [ freshShield
+                  { position = 350 :+ 260,
+                    placement = 40 :+ shieldPlacementMargin,
+                    angle = 30,
+                    omega = 10
+                  },
+                freshShield
+                  { position = 350 :+ (-260),
+                    placement = 40 :+ (- shieldPlacementMargin),
+                    angle = 0,
+                    omega = -10
+                  }
               ]
             else []
     updateGameObject option@Option {} =
@@ -641,10 +696,10 @@ updateMonadius realKeys (Monadius (variables, objects)) =
           }
       ]
       where
-        newmode =
-          if hp (probe miso) <= 0
-            then 1
-            else if mode miso == 0 then 0 else 2
+        newmode
+          | hp (probe miso) <= 0 = 1
+          | mode miso == 0 = 0
+          | otherwise = 2
         v = case newmode of
           0 -> 3.5 :+ (-7)
           1 -> 8 :+ 0
@@ -652,58 +707,76 @@ updateMonadius realKeys (Monadius (variables, objects)) =
           _ -> 0
         newpos = position miso + v
     updateGameObject shot@StandardRailgun {} =
-      if hp shot <= 0
-        then []
-        else [shot {position = position shot + velocity shot}]
+      [shot {position = position shot + velocity shot} | hp shot > 0]
     updateGameObject laser@StandardLaser {} =
-      if hp laser <= 0
-        then []
-        else [laser {position = (\(x :+ _) -> x :+ parentY) $ position laser + velocity laser, age = age laser + 1}]
+      [ laser
+          { position =
+              (\(x :+ _) -> x :+ parentY) $
+                position laser + velocity laser,
+            age = age laser + 1
+          }
+        | hp laser > 0
+      ]
       where
         myParent = head $ filter (\o -> tag o == Just (parentTag laser)) gameObjects
         _ :+ parentY = position myParent
     updateGameObject shield@Shield {} =
-      if (hp shield <= 0)
-        then []
-        else
-          [ ( if settled shield
-                then
-                  shield
-                    { position = target,
-                      size = shieldPlacementMargin + intToGLdouble (hp shield),
-                      hitDisp = Circular (0 :+ 0) (size shield + shieldHitMargin),
-                      hitDispLand = Circular (0 :+ 0) (size shield)
-                    }
-                else shield {hp = shieldMaxHp, size = 5 + intToGLdouble (hp shield), position = newPosition, settled = chaseFactor > 0.6}
-            )
-              { angle = angle shield + omega shield
-              }
-          ]
+      [ ( if settled shield
+            then
+              shield
+                { position = target,
+                  size = shieldPlacementMargin + intToGLdouble (hp shield),
+                  hitDisp = Circular (0 :+ 0) (size shield + shieldHitMargin),
+                  hitDispLand = Circular (0 :+ 0) (size shield)
+                }
+            else
+              shield
+                { hp = shieldMaxHp,
+                  size = 5 + intToGLdouble (hp shield),
+                  position = newPosition,
+                  settled = chaseFactor > 0.6
+                }
+        )
+          { angle = angle shield + omega shield
+          }
+        | hp shield > 0
+      ]
       where
         newPosition = position shield + v
         v = difference * (chaseFactor :+ 0)
-        chaseFactor = (10 / magnitude difference)
+        chaseFactor = 10 / magnitude difference
         difference = target - position shield
         target = position vicViper + (realPart (placement shield) :+ additionalPlacementY)
         additionalPlacementY = signum (imagPart $placement shield) * size shield
     updateGameObject pow@PowerUpCapsule {} =
-      if (hp pow <= 0)
+      if hp pow <= 0
         then [freshScore 800]
         else
-          [ pow {age = age pow + 1}
-          ]
-            ++ if powerUpCapsuleHitBack !! gameLevel && age pow == 1
-              then
-                map (\theta -> freshDiamondBomb {position = position pow, velocity = mkPolar (bacterianShotSpeed * 0.5) theta}) $
-                  take 8 $ iterate (+ (2 * pi / 8)) (pi / 8)
-              else []
+          pow {age = age pow + 1} :
+          if powerUpCapsuleHitBack !! gameLevel && age pow == 1
+            then
+              map
+                ( \theta ->
+                    freshDiamondBomb
+                      { position = position pow,
+                        velocity = mkPolar (bacterianShotSpeed * 0.5) theta
+                      }
+                )
+                $ take 8 $ iterate (+ (2 * pi / 8)) (pi / 8)
+            else []
     updateGameObject bullet@DiamondBomb {} =
-      if hp bullet <= 0
-        then []
-        else [bullet {position = position bullet + velocity bullet, age = age bullet + 1}]
+      [ bullet
+          { position = position bullet + velocity bullet,
+            age = age bullet + 1
+          }
+        | hp bullet > 0
+      ]
     updateGameObject self@TurnGear {position = pos@(x :+ y), mode = m} =
       if hp self <= 0
-        then [freshScore 50] ++ freshExplosions pos ++ if turnGearHitBack !! gameLevel then [scatteredNeraiDan pos (bacterianShotSpeed :+ 0)] else []
+        then
+          freshScore 50 :
+          freshExplosions pos
+            ++ [scatteredNeraiDan pos (bacterianShotSpeed :+ 0) | turnGearHitBack !! gameLevel]
         else
           [ self
               { position = position self + velocity self,
@@ -714,13 +787,16 @@ updateMonadius realKeys (Monadius (variables, objects)) =
           ]
       where
         newv = case m of
-          0 -> ((-4) :+ 0)
-          1 -> if (y - (imagPart . position) vicViper) > 0 then (3 :+ (-5)) else (3 :+ (5))
+          0 -> (-4) :+ 0
+          1 -> if (y - (imagPart . position) vicViper) > 0 then 3 :+ (-5) else 3 :+ 5
           _ -> if isEasy then 2 :+ 0 else 6 :+ 0
-        newmode =
-          if m == 0 && x < (if not isEasy then -280 else 0) && (realPart . position) vicViper > (-270)
-            then 1
-            else if m == 1 && abs (y - (imagPart . position) vicViper) < 20 then 2 else m
+        newmode
+          | m == 0
+              && x < (if not isEasy then - 280 else 0)
+              && (realPart . position) vicViper > (- 270) =
+            1
+          | m == 1 && abs (y - (imagPart . position) vicViper) < 20 = 2
+          | otherwise = m
     updateGameObject me@SquadManager {position = pos, interval = intv, members = membs, age = clock, tag = Just myTag} =
       if mySquadIsWipedOut
         then
@@ -735,101 +811,108 @@ updateMonadius realKeys (Monadius (variables, objects)) =
           dispatchedObjects
       where
         dispatchedObjects =
-          if (clock `div` intv < length membs && clock `mod` intv == 0)
-            then [(membs !! (clock `div` intv)) {position = pos, managerTag = myTag}]
-            else []
-        todaysDeaths = sum $ map (\o -> if hp o <= 0 then 1 else 0) $ mySquad
-        mySquadIsWipedOut = clock > releaseTimeOfLastMember && length mySquad <= 0
-        warFront = position $ head $ mySquad
+          [ (membs !! (clock `div` intv))
+              { position = pos,
+                managerTag = myTag
+              }
+            | clock `div` intv < length membs && clock `mod` intv == 0
+          ]
+        todaysDeaths = sum $ map (\o -> if hp o <= 0 then 1 else 0) mySquad
+        mySquadIsWipedOut = clock > releaseTimeOfLastMember && null mySquad
+        warFront = position $ head mySquad
         releaseTimeOfLastMember = intv * (length membs -1)
         mySquad =
           filter
-            ( \o -> case o of
+            ( \case
                 TurnGear {managerTag = hisManagerTag} -> hisManagerTag == myTag -- bad, absolutely bad code
                 _ -> False
             )
             gameObjectsAfterCollision
-    updateGameObject this@Flyer {position = pos@(x :+ _), age = myAge, mode = m, velocity = v} =
-      if gameClock variables > stageClearTime - 100
-        then freshExplosions pos
-        else
-          if hp this <= 0
-            then ([freshScore (if mode this == 10 then 30 else 110)] ++ freshExplosions pos ++ (if hasItem this then [freshPowerUpCapsule {position = pos}] else if flyerHitBack !! gameLevel then [scatteredNeraiDan pos (bacterianShotSpeed :+ 0)] else []))
-            else
-              [ this
-                  { age = myAge + 1,
-                    position = pos + v,
-                    velocity = newV,
-                    mode = newMode
-                  }
-              ]
-                ++ myShots
+    updateGameObject this@Flyer {position = pos@(x :+ _), age = myAge, mode = m, velocity = v}
+      | gameClock variables > stageClearTime - 100 = freshExplosions pos
+      | hp this <= 0 =
+        freshScore (if mode this == 10 then 30 else 110) :
+        freshExplosions pos
+          ++ if hasItem this
+            then [freshPowerUpCapsule {position = pos}]
+            else ([scatteredNeraiDan pos (bacterianShotSpeed :+ 0) | flyerHitBack !! gameLevel])
+      | otherwise =
+        this
+          { age = myAge + 1,
+            position = pos + v,
+            velocity = newV,
+            mode = newMode
+          } :
+        myShots
       where
         newV = case m of
-          00 -> (realPart v) :+ sin (intToGLdouble myAge / 5)
+          00 -> realPart v :+ sin (intToGLdouble myAge / 5)
           01 -> v --if magnitude v <= 0.01 then if imagPart (position vicViper-pos)>0 then 0:+10 else 0:+(-10) else v
           02 -> (-4) :+ 0
-          10 -> if (not isEasy) || myAge < 10 then stokeV else v
+          10 -> if not isEasy || myAge < 10 then stokeV else v
           _ -> v
-        stokeV = angleAccuracy 16 $ (* ((min (speed vicViper * 0.75) (intToGLdouble $round $magnitude v)) :+ 0)) $ unitVector $ position vicViper - pos
+        stokeV = angleAccuracy 16 $ (* (min (speed vicViper * 0.75) (intToGLdouble $ round $ magnitude v) :+ 0)) $ unitVector $ position vicViper - pos
         newMode = case m of
           01 -> if myAge > 20 && (position vicViper - pos) `innerProduct` v < 0 then 02 else 01
           _ -> m
         myShots =
-          if (myAge + 13 * (fromJust $tag this)) `mod` myInterval == 0 && (x <= (-80) || x <= realPart (position vicViper))
-            then [jikiNeraiDan pos (bacterianShotSpeed :+ 0)]
-            else []
-        myInterval = if m == 00 || m == 03 then flyerShotInterval !! gameLevel else inceptorShotInterval !! gameLevel
+          [ jikiNeraiDan pos (bacterianShotSpeed :+ 0)
+            | (myAge + 13 * fromJust (tag this)) `mod` myInterval == 0
+                && (x <= (- 80) || x <= realPart (position vicViper))
+          ]
+        myInterval =
+          if m == 00 || m == 03
+            then flyerShotInterval !! gameLevel
+            else inceptorShotInterval !! gameLevel
     updateGameObject me@Ducker {position = pos@(_ :+ _), velocity = v, age = myAge, gVelocity = vgrav, touchedLand = touched} =
       if hp me <= 0
-        then ([freshScore 130] ++ freshExplosions pos ++ if hasItem me then [freshPowerUpCapsule {position = pos}] else [])
+        then freshScore 130 : freshExplosions pos ++ [freshPowerUpCapsule {position = pos} | hasItem me]
         else
-          [ me
-              { age = myAge + 1,
-                position = pos + v,
-                charge =
-                  if charge me <= 0 && aimRate > 0.9 && aimRate < 1.1
-                    then (duckerShotCount !! gameLevel) * 7 + 3
-                    else ((\x -> if x > 0 then x -1 else x) $ charge me),
-                vgun = unitVector $ aimX :+ aimY,
-                velocity =
-                  if charge me > 0
-                    then 0 :+ 0
-                    else
-                      if magnitude v <= 0.01
-                        then
-                          ( if realPart (position vicViper - pos) > 0 then 3 :+ 0 else (-3) :+ 0
-                          )
-                        else
-                          if touched
-                            then ((realPart v) :+ (- imagPart vgrav))
-                            else (realPart v :+ (imagPart vgrav)),
-                touchedLand = False
-              }
-          ]
-            ++ myShots
+          me
+            { age = myAge + 1,
+              position = pos + v,
+              charge =
+                if charge me <= 0 && aimRate > 0.9 && aimRate < 1.1
+                  then (duckerShotCount !! gameLevel) * 7 + 3
+                  else (\x -> if x > 0 then x -1 else x) $ charge me,
+              vgun = unitVector $ aimX :+ aimY,
+              velocity =
+                if charge me > 0
+                  then 0 :+ 0
+                  else
+                    if magnitude v <= 0.01
+                      then if realPart (position vicViper - pos) > 0 then 3 :+ 0 else (-3) :+ 0
+                      else
+                        if touched
+                          then realPart v :+ (- imagPart vgrav)
+                          else realPart v :+ imagPart vgrav,
+              touchedLand = False
+            } :
+          myShots
       where
         aimX :+ aimY = position vicViper - pos
-        aimRate = (- (signum $realPart v)) * aimX / (abs (aimY) + 0.1)
+        aimRate = (- (signum $ realPart v)) * aimX / (abs aimY + 0.1)
         myShots =
           if charge me `mod` 7 /= 6
             then []
             else map (\w -> freshDiamondBomb {position = pos, velocity = w}) vs
-        vs = map (\vy -> (vgun me) * (bacterianShotSpeed :+ (1.5 * (vy)))) [- duckerShotWay !! gameLevel + 1, - duckerShotWay !! gameLevel + 3 .. duckerShotWay !! gameLevel -0.9]
+        vs = map (\vy -> vgun me * (bacterianShotSpeed :+ (1.5 * vy))) [- duckerShotWay !! gameLevel + 1, - duckerShotWay !! gameLevel + 3 .. duckerShotWay !! gameLevel -0.9]
     updateGameObject me@Jumper {position = pos@(_ :+ _), velocity = v, age = _, gravity = g, touchedLand = touched} =
       if hp me <= 0
-        then ([freshScore 300] ++ freshExplosions pos ++ if hasItem me then [freshPowerUpCapsule {position = pos}] else [])
+        then freshScore 300 : freshExplosions pos ++ [freshPowerUpCapsule {position = pos} | hasItem me]
         else
-          [ me
-              { position = pos + v,
-                velocity = if touched then (signum (realPart $ position vicViper - pos) * abs (realPart v) :+ imagPart (jumpSize * g)) else v + g,
-                jumpCounter =
-                  (if touched && v `innerProduct` g > 0 then (+ 1) else id) $
-                    (if doesShot then (+ 1) else id) $ jumpCounter me,
-                touchedLand = False
-              }
-          ]
-            ++ shots
+          me
+            { position = pos + v,
+              velocity =
+                if touched
+                  then signum (realPart $ position vicViper - pos) * abs (realPart v) :+ imagPart (jumpSize * g)
+                  else v + g,
+              jumpCounter =
+                (if touched && v `innerProduct` g > 0 then (+ 1) else id) $
+                  (if doesShot then (+ 1) else id) $ jumpCounter me,
+              touchedLand = False
+            } :
+          shots
       where
         jumpSize = if jumpCounter me `mod` 4 == 2 then (-30) else (-20)
         doesShot = jumpCounter me `mod` 4 == 2 && v `innerProduct` g > 0
@@ -846,34 +929,55 @@ updateMonadius realKeys (Monadius (variables, objects)) =
           [freshScore 3000] ++ freshMiddleExplosions pos
             ++ if scrambleHatchHitBack !! gameLevel then hatchHitBacks else []
         else
-          [ me
-              { age = a + 1,
-                gateAngle = max 0 $ min pi $ (if length currentLaunches > 0 then (+ 1) else (+ (-0.05))) $ gateAngle me
-              }
-          ]
-            ++ currentLaunches
+          me
+            { age = a + 1,
+              gateAngle =
+                max 0 $
+                  min pi $
+                    (if not (null currentLaunches) then (+ 1) else (+ (-0.05))) $
+                      gateAngle me
+            } :
+          currentLaunches
       where
         currentLaunches =
           if a <= scrambleHatchLaunchLimitAge !! gameLevel
-            then (map (\obj -> obj {position = pos}) $ launchProgram me !! a)
+            then map (\obj -> obj {position = pos}) $ launchProgram me !! a
             else []
         hatchHitBacks =
-          (map (\theta -> freshDiamondBomb {position = pos -16 * gravity me, velocity = mkPolar (bacterianShotSpeed * 0.5) theta}) $ take way $ iterate (+ 2 * pi / intToGLdouble way) 0)
-            ++ (map (\theta -> freshDiamondBomb {position = pos -16 * gravity me, velocity = mkPolar (bacterianShotSpeed * 0.4) theta}) $ take way $ iterate (+ 2 * pi / intToGLdouble way) (pi / intToGLdouble way))
+          map
+            ( \theta ->
+                freshDiamondBomb
+                  { position = pos - 16 * gravity me,
+                    velocity = mkPolar (bacterianShotSpeed * 0.5) theta
+                  }
+            )
+            (take way $ iterate (+ 2 * pi / intToGLdouble way) 0)
+            ++ map
+              ( \theta ->
+                  freshDiamondBomb
+                    { position = pos - 16 * gravity me,
+                      velocity = mkPolar (bacterianShotSpeed * 0.4) theta
+                    }
+              )
+              (take way $ iterate (+ 2 * pi / intToGLdouble way) (pi / intToGLdouble way))
         way = 16
     updateGameObject me@Grashia {position = pos} =
       if hp me <= 0
-        then ([freshScore 150] ++ freshExplosions pos ++ if hasItem me then [freshPowerUpCapsule {position = pos}] else [])
+        then freshScore 150 : freshExplosions pos ++ ([freshPowerUpCapsule {position = pos} | hasItem me])
         else
-          [ me
-              { age = age me + 1,
-                gunVector = unitVector $ position vicViper - pos,
-                position = position me + ((-3) * sin (intToGLdouble (age me * mode me) / 8) :+ 0)
-              } --V no shotto wo osoku
-          ]
-            ++ if age me `mod` myInterval == 0 && age me `mod` 200 > grashiaShotHalt !! gameLevel
-              then [jikiNeraiDanAc (pos + gunVector me * (16 :+ 0)) (grashiaShotSpeedFactor !! gameLevel * bacterianShotSpeed :+ 0) 64]
-              else []
+          me
+            { age = age me + 1,
+              gunVector = unitVector $ position vicViper - pos,
+              position = position me + ((-3) * sin (intToGLdouble (age me * mode me) / 8) :+ 0)
+            } : --V no shotto wo osoku
+          ( [ jikiNeraiDanAc
+                (pos + gunVector me * (16 :+ 0))
+                (grashiaShotSpeedFactor !! gameLevel * bacterianShotSpeed :+ 0)
+                64
+              | age me `mod` myInterval == 0
+                  && age me `mod` 200 > grashiaShotHalt !! gameLevel
+            ]
+          )
       where
         myInterval = if mode me == 0 then grashiaShotInterval !! gameLevel else landRollShotInterval !! gameLevel
     updateGameObject me@Particle {position = pos} =
@@ -894,21 +998,25 @@ updateMonadius realKeys (Monadius (variables, objects)) =
       if gameClock variables > stageClearTime -180
         then []
         else
-          [ me
-              { fever = if launch then f + 1 else f
-              }
-          ]
-            ++ if launch
-              then
-                map (\pos -> freshStalk {position = pos, velocity = (-4) :+ 0, hasItem = (realPart pos > 0 && (round $ imagPart pos :: Int) `mod` (3 * round margin) == 0)}) $
-                  concat $ map (\t -> [(340 :+ t), ((-340) :+ t), (t :+ (260)), (t :+ (-260))]) $ [(- margin * df), (((negate margin) * df) + (margin * 2)) .. (margin * df + 1)]
-              else []
+          me {fever = if launch then f + 1 else f} :
+          if launch
+            then
+              map
+                ( \pos ->
+                    freshStalk
+                      { position = pos,
+                        velocity = (-4) :+ 0,
+                        hasItem = realPart pos > 0 && (round $ imagPart pos :: Int) `mod` (3 * round margin) == 0
+                      }
+                )
+                $ concatMap (\t -> [340 :+ t, (-340) :+ t, t :+ 260, t :+ (-260)]) [(- margin * df), ((negate margin * df) + (margin * 2)) .. (margin * df + 1)]
+            else []
       where
         launch =
           (<= 0) $
             length $
               filter
-                ( \obj -> case obj of
+                ( \case
                     Flyer {} -> True
                     _ -> False
                 )
@@ -930,23 +1038,44 @@ updateMonadius realKeys (Monadius (variables, objects)) =
         } :
       (shots ++ missiles)
       where
-        (shots, penalty1) =
-          if doesNormal
-            then ([freshStandardRailgun {position = position obj, parentTag = myTag}], 2)
-            else
-              if doesGLdouble
-                then ([freshStandardRailgun {position = position obj, parentTag = myTag}, freshStandardRailgun {position = position obj, parentTag = myTag, velocity = mkPolar 1 (pi / 4) * velocity freshStandardRailgun}], 2)
-                else
-                  if doesLaser
-                    then ([freshStandardLaser {position = position obj + (shotSpeed / 2 :+ 0), parentTag = myTag}], 1)
-                    else ([], 0)
+        (shots, penalty1)
+          | doesNormal =
+            ( [ freshStandardRailgun
+                  { position = position obj,
+                    parentTag = myTag
+                  }
+              ],
+              2
+            )
+          | doesGLdouble =
+            ( [ freshStandardRailgun
+                  { position = position obj,
+                    parentTag = myTag
+                  },
+                freshStandardRailgun
+                  { position = position obj,
+                    parentTag = myTag,
+                    velocity = mkPolar 1 (pi / 4) * velocity freshStandardRailgun
+                  }
+              ],
+              2
+            )
+          | doesLaser =
+            ( [ freshStandardLaser
+                  { position = position obj + (shotSpeed / 2 :+ 0),
+                    parentTag = myTag
+                  }
+              ],
+              1
+            )
+          | otherwise = ([], 0)
         penalty2 = if weaponEnergy obj <= 0 then 8 else 0
-        missiles = if doesMissile then [freshStandardMissile {position = position obj}] else []
-        doesShot = (isJust $tag obj) && (reloadTime obj <= 0) && (shotButton `elem` keys)
+        missiles = [freshStandardMissile {position = position obj} | doesMissile]
+        doesShot = isJust (tag obj) && (reloadTime obj <= 0) && (shotButton `elem` keys)
         doesNormal = doesShot && elem NormalShot types && (shotCount < 2)
         doesGLdouble = doesShot && elem GLdoubleShot types && (shotCount < 1)
         doesLaser = doesShot && elem Laser types
-        doesMissile = (isJust $tag obj) && elem Missile types && (missileButton `elem` keys) && (missileCount <= 0)
+        doesMissile = isJust (tag obj) && elem Missile types && (missileButton `elem` keys) && (missileCount <= 0)
         myTag = fromJust $ tag obj
         shotCount =
           length $
@@ -959,7 +1088,7 @@ updateMonadius realKeys (Monadius (variables, objects)) =
         missileCount =
           length $
             filter
-              ( \o -> case o of
+              ( \case
                   StandardMissile {} -> True
                   _ -> False
               )
@@ -973,7 +1102,7 @@ updateMonadius realKeys (Monadius (variables, objects)) =
     jikiNeraiDanAc sourcePos initVelocity accuracy =
       freshDiamondBomb
         { position = sourcePos,
-          velocity = (* initVelocity) $ (angleAccuracy accuracy) $ unitVector $ position vicViper - sourcePos
+          velocity = (* initVelocity) $ angleAccuracy accuracy $ unitVector $ position vicViper - sourcePos
         }
     jikiNeraiDan sourcePos initVelocity = jikiNeraiDanAc sourcePos initVelocity 32
 
@@ -982,12 +1111,12 @@ updateMonadius realKeys (Monadius (variables, objects)) =
     scatteredNeraiDan sourcePos initVelocity =
       freshDiamondBomb
         { position = sourcePos,
-          velocity = scatter $ (* initVelocity) $ (angleAccuracy 32) $ unitVector $ position vicViper - sourcePos
+          velocity = scatter $ (* initVelocity) $ angleAccuracy 32 $ unitVector $ position vicViper - sourcePos
         }
       where
         scatter z =
           let (r, theta) = polar z
-           in mkPolar r (theta + pi / 8 * ((^ (3 :: Int)) . sin) ((intToGLdouble $ gameClock variables) + magnitude sourcePos))
+           in mkPolar r (theta + pi / 8 * ((^ (3 :: Int)) . sin) (intToGLdouble (gameClock variables) + magnitude sourcePos))
 
     freshExplosionParticle pos vel a = Particle {tag = Nothing, position = pos, velocity = vel, size = 8, particleColor = Color3 1 0.5 0, age = a, decayTime = 6, expireAge = 20}
 
@@ -995,15 +1124,15 @@ updateMonadius realKeys (Monadius (variables, objects)) =
       where
         expls :: [GameObject]
         expls = makeExp randoms
-        randoms = [square $ sin (9801 * sqrt t * (intToGLdouble $gameClock variables) + magnitude pos) | t <- [1 ..]]
-        makeExp (a : b : c : xs) = (freshExplosionParticle pos (mkPolar (3 * a) (2 * pi * b)) (round $ -5 * c)) : makeExp xs
+        randoms = [square $ sin (9801 * sqrt t * intToGLdouble (gameClock variables) + magnitude pos) | t <- [1 ..]]
+        makeExp (a : b : c : xs) = freshExplosionParticle pos (mkPolar (3 * a) (2 * pi * b)) (round $ -5 * c) : makeExp xs
         makeExp _ = []
 
     freshMiddleExplosions pos = take 16 expls
       where
         expls :: [GameObject]
         expls = makeExp randoms 0
-        randoms = [square $ sin (8086 * sqrt t * (intToGLdouble $gameClock variables) + magnitude pos) | t <- [1 ..]]
+        randoms = [square $ sin (8086 * sqrt t * intToGLdouble (gameClock variables) + magnitude pos) | t <- [1 ..]]
         makeExp (a : b : xs) i = (freshExplosionParticle (pos + mkPolar 5 (pi / 8 * i)) (mkPolar (6 + 3 * a) (pi / 8 * i)) (round $ -5 * b)) {size = 16} : makeExp xs (i + 1)
         makeExp _ _ = []
 
@@ -1013,7 +1142,7 @@ updateMonadius realKeys (Monadius (variables, objects)) =
     issueTag nt [] = (nt, [])
     issueTag nt (x : xs) = (newNextTag', taggedX : taggedXs)
       where
-        (nextTagForXs, taggedX) = if (isNothing $ tag x) then (nt + 1, x {tag = Just nt}) else (nt, x)
+        (nextTagForXs, taggedX) = if isNothing $ tag x then (nt + 1, x {tag = Just nt}) else (nt, x)
         (newNextTag', taggedXs) = issueTag nextTagForXs xs
 
     collide :: [GameObject] -> [GameObject]
@@ -1029,7 +1158,7 @@ updateMonadius realKeys (Monadius (variables, objects)) =
 
         objectsWhoseHitClassIsMyWeakPoint :: GameObject -> [GameObject]
         objectsWhoseHitClassIsMyWeakPoint me =
-          filter (\him -> not $ null $ (weakPoint me) `intersect` (hitClass him)) gameObjects
+          filter (\him -> not $ null $ weakPoint me `intersect` hitClass him) gameObjects
 
         hitClass :: GameObject -> [HitClass]
         hitClass VicViper {} = [MetalionBody, ItemReceiver]
@@ -1069,11 +1198,11 @@ updateMonadius realKeys (Monadius (variables, objects)) =
         -- to see if source really hits the target.
         check :: GameObject -> GameObject -> GameObject
         check source target = case (source, target) of
-          (LandScapeBlock {}, StandardMissile {}) -> if (hit source target) then (affect source target2) else target2
+          (LandScapeBlock {}, StandardMissile {}) -> if hit source target then affect source target2 else target2
             where
-              target2 = target {probe = if (hit source p) then (affect source p) else p}
+              target2 = target {probe = if hit source p then affect source p else p}
               p = probe target
-          _ -> if (hit source target) then (affect source target) else target
+          _ -> if hit source target then affect source target else target
 
         -- if a is really hitting b, a affects b (usually, decreases hitpoint of b).
         -- note that landScapeSensitive objects have special hitDispLand other than hitDisp.
@@ -1138,10 +1267,13 @@ updateMonadius realKeys (Monadius (variables, objects)) =
           scrollBehavior SabbathicAgent {} = NoRollOut False
           scrollBehavior _ = RollOutAuto True 40
 
-          scrollSpeed = if hp vicViper <= 0 then 0 else if gameClock variables <= 6400 then 1 else 2
+          scrollSpeed
+            | hp vicViper <= 0 = 0
+            | gameClock variables <= 6400 = 1
+            | otherwise = 2
           rolledObj = if doesScroll $ scrollBehavior obj then obj {position = (x - scrollSpeed) :+ y} else obj
        in case scrollBehavior obj of
-            Enclosed _ -> Just rolledObj {position = (max (-300) $ min 280 x) :+ (max (-230) $ min 230 y)}
+            Enclosed _ -> Just rolledObj {position = max (-300) (min 280 x) :+ max (-230) (min 230 y)}
             NoRollOut _ -> Just rolledObj
             RollOutAuto _ r ->
               if any (> r) [x -320, (-320) - x, y -240, (-240) - y]
@@ -1161,74 +1293,74 @@ updateMonadius realKeys (Monadius (variables, objects)) =
           ( case clock of
               -- stage layout.
               -- just like old BASIC code.
-              150 -> [freshTurnGearSquad {position = 340 :+ (180)}]
+              150 -> [freshTurnGearSquad {position = 340 :+ 180}]
               300 -> [freshTurnGearSquad {position = 340 :+ (-180)}]
-              400 -> [freshTurnGearSquad {position = 340 :+ (180)}]
+              400 -> [freshTurnGearSquad {position = 340 :+ 180}]
               500 -> [freshTurnGearSquad {position = 340 :+ (-180)}]
               633 -> map (\y -> freshStalk {position = 340 :+ y, hasItem = False}) [-120, 120] ++ [freshStalk {position = 340 :+ 0, hasItem = isEasy}]
               666 -> map (\y -> freshStalk {position = 340 :+ y, hasItem = isEasy}) [-130, 130] ++ [freshStalk {position = 340 :+ 0, hasItem = False}]
               700 -> map (\y -> freshStalk {position = 340 :+ y, hasItem = False}) [-140, 140] ++ [freshStalk {position = 340 :+ 0, hasItem = True}]
               733 -> map (\y -> freshStalk {position = 340 :+ y, hasItem = isEasy}) [-150, 150] ++ [freshStalk {position = 340 :+ 0, hasItem = False}]
               900 -> [freshTurnGearSquad {position = 340 :+ (-180)}]
-              1000 -> [freshTurnGearSquad {position = 340 :+ (180)}]
+              1000 -> [freshTurnGearSquad {position = 340 :+ 180}]
               1050 -> map (\y -> freshStalk {position = 340 :+ y}) [-135, 0, 135]
               1250 -> map (\y -> freshFlyer {position = 340 :+ y}) [-150, -100]
               1300 -> map (\y -> freshFlyer {position = 340 :+ y, hasItem = True}) [100, 150]
-              1100 -> [freshTurnGearSquad {position = 340 :+ (-180)}, freshTurnGearSquad {position = 340 :+ (180)}]
-              1400 -> [(freshGrashia (-1)) {position = 340 :+ (-185)}, (freshGrashia 1) {position = 340 :+ (185)}]
-              1450 -> [(freshGrashia (-1)) {position = 340 :+ (-185), hasItem = True}, (freshGrashia 1) {position = 340 :+ (185)}]
-              1550 -> [(freshScrambleHatch (-1)) {position = 360 :+ (-200)}, (freshScrambleHatch (1)) {position = 360 :+ (200)}]
+              1100 -> [freshTurnGearSquad {position = 340 :+ (-180)}, freshTurnGearSquad {position = 340 :+ 180}]
+              1400 -> [(freshGrashia (-1)) {position = 340 :+ (-185)}, (freshGrashia 1) {position = 340 :+ 185}]
+              1450 -> [(freshGrashia (-1)) {position = 340 :+ (-185), hasItem = True}, (freshGrashia 1) {position = 340 :+ 185}]
+              1550 -> [(freshScrambleHatch (-1)) {position = 360 :+ (-200)}, (freshScrambleHatch 1) {position = 360 :+ 200}]
               1700 -> [(freshVolcano (-1)) {position = 479 :+ (-200)}]
               1900 -> map (\(g, x) -> (freshDucker g) {position = x :+ g * 100}) $ [(1, 340), (-1, 340)] ++ if not isEasy then [(1, -340), (-1, -340)] else []
-              1940 -> [(freshLandRoll (1)) {position = 340 :+ (185)}]
-              1965 -> [(freshLandRoll (1)) {position = 340 :+ (185)}]
-              1990 -> [(freshLandRoll (1)) {position = 340 :+ (185)}]
+              1940 -> [(freshLandRoll 1) {position = 340 :+ 185}]
+              1965 -> [(freshLandRoll 1) {position = 340 :+ 185}]
+              1990 -> [(freshLandRoll 1) {position = 340 :+ 185}]
               2000 -> [(freshGrashia (-1)) {position = 340 :+ (-185)}, (freshDucker (-1)) {position = (-340) :+ (-185)}]
-              2033 -> [(freshGrashia (-1)) {position = 340 :+ (-185)}, (freshDucker 1) {position = (-340) :+ (185)}]
+              2033 -> [(freshGrashia (-1)) {position = 340 :+ (-185)}, (freshDucker 1) {position = (-340) :+ 185}]
               2100 -> [(freshScrambleHatch (-1)) {position = 360 :+ (-200)}]
-              2200 -> [(freshVolcano 1) {position = 479 :+ (200)}]
+              2200 -> [(freshVolcano 1) {position = 479 :+ 200}]
               2250 -> map (\y -> freshStalk {position = 340 :+ y}) [-150, 0, 150]
-              2339 -> [(freshGrashia (1)) {position = 340 :+ 35}, (freshGrashia (-1)) {position = 340 :+ (-185)}]
+              2339 -> [(freshGrashia 1) {position = 340 :+ 35}, (freshGrashia (-1)) {position = 340 :+ (-185)}]
               2433 -> map (\y -> freshFlyer {position = 340 :+ y}) [-150, 0]
               2466 -> map (\y -> freshFlyer {position = 340 :+ y}) [-150, 0]
               2499 -> map (\y -> freshFlyer {position = 340 :+ y}) [-150, 0]
-              2620 -> [(freshDucker 1) {position = (-340) :+ (200)}]
-              2640 -> [(freshDucker 1) {position = (-340) :+ (200), hasItem = True}]
+              2620 -> [(freshDucker 1) {position = (-340) :+ 200}]
+              2640 -> [(freshDucker 1) {position = (-340) :+ 200, hasItem = True}]
               2800 -> map (\(g, x) -> (freshJumper g) {position = x :+ g * 100, velocity = ((-3) * signum x) :+ 0}) $ [(1, 340), (-1, 340)] ++ if not isEasy then [(1, -340), (-1, -340)] else []
-              2999 -> [(freshVolcano 2) {position = 479 :+ (20), velocity = (0 :+ (-0.5))}, (freshVolcano (-2)) {position = 479 :+ (-20), velocity = (0 :+ (0.5))}]
-              3200 -> concat $ map (\x -> [freshLandScapeGround {position = (479 - x) :+ 220}, freshLandScapeGround {position = (479 - x) :+ (-220)}]) [320, 640]
+              2999 -> [(freshVolcano 2) {position = 479 :+ 20, velocity = 0 :+ (-0.5)}, (freshVolcano (-2)) {position = 479 :+ (-20), velocity = 0 :+ 0.5}]
+              3200 -> concatMap (\x -> [freshLandScapeGround {position = (479 - x) :+ 220}, freshLandScapeGround {position = (479 - x) :+ (-220)}]) [320, 640]
               3210 -> [freshFlyer {position = 340 :+ 150}, freshFlyer {position = 340 :+ 100, hasItem = True}]
               3290 -> [freshFlyer {position = 340 :+ (-150)}, freshFlyer {position = 340 :+ (-100), hasItem = True}]
-              3350 -> map (\g -> (freshLandRoll (g)) {position = 340 :+ (g * 185)}) [1, -1] ++ if isRevival then [] else [(freshJumper (1)) {position = (-340) :+ 150, velocity = 3 :+ 0}]
-              3400 -> map (\g -> (freshLandRoll (g)) {position = 340 :+ (g * 185)}) [1, -1] ++ if isRevival then [] else [(freshJumper (-1)) {position = (-340) :+ (-150), velocity = 3 :+ 0}]
-              3450 -> map (\g -> (freshLandRoll (g)) {position = 340 :+ (g * 185)}) [1, -1]
+              3350 -> map (\g -> (freshLandRoll g) {position = 340 :+ (g * 185)}) [1, -1] ++ ([(freshJumper (- 1)) {position = (- 340) :+ (- 150), velocity = 3 :+ 0} | not isRevival])
+              3400 -> map (\g -> (freshLandRoll g) {position = 340 :+ (g * 185)}) [1, -1] ++ ([(freshJumper (- 1)) {position = (- 340) :+ (- 150), velocity = 3 :+ 0} | not isRevival])
+              3450 -> map (\g -> (freshLandRoll g) {position = 340 :+ (g * 185)}) [1, -1]
               3500 -> [(freshVolcano (-1)) {position = 479 :+ (-200)}]
               3579 -> [(freshGrashia (-1)) {position = 340 :+ (-100)}]
               3639 -> [(freshGrashia (-1)) {position = 340 :+ (-40)}]
               3699 -> [(freshGrashia (-1)) {position = 340 :+ (-100)}]
-              3501 -> [(freshScrambleHatch (1)) {position = 360 :+ (200)}]
-              3600 -> [(freshScrambleHatch (1)) {position = 360 :+ (200)}]
-              3582 -> [(freshDucker (-1)) {position = (340) :+ (-200)}]
-              3612 -> [(freshDucker (-1)) {position = (340) :+ (-200)}]
-              3642 -> [(freshDucker (-1)) {position = (340) :+ (-200)}]
-              3672 -> [(freshDucker (-1)) {position = (340) :+ (-200)}]
-              3702 -> [(freshDucker (-1)) {position = (340) :+ (-200), hasItem = True}]
-              3703 -> [(freshLandRoll (1)) {position = (340) :+ (185), hasItem = True}]
+              3501 -> [(freshScrambleHatch 1) {position = 360 :+ 200}]
+              3600 -> [(freshScrambleHatch 1) {position = 360 :+ 200}]
+              3582 -> [(freshDucker (-1)) {position = 340 :+ (-200)}]
+              3612 -> [(freshDucker (-1)) {position = 340 :+ (-200)}]
+              3642 -> [(freshDucker (-1)) {position = 340 :+ (-200)}]
+              3672 -> [(freshDucker (-1)) {position = 340 :+ (-200)}]
+              3702 -> [(freshDucker (-1)) {position = 340 :+ (-200), hasItem = True}]
+              3703 -> [(freshLandRoll 1) {position = 340 :+ 185, hasItem = True}]
               3820 -> map (\y -> freshFlyer {position = 340 :+ y}) [-100, 100]
               3840 -> map (\y -> freshFlyer {position = 340 :+ y}) [-110, 110]
               3860 -> map (\y -> freshFlyer {position = 340 :+ y}) [-120, 120]
               3880 -> map (\y -> freshFlyer {position = 340 :+ y, hasItem = isEasy}) [-130, 130]
               3900 -> [freshTurnGearSquad {position = 340 :+ 0}]
               4000 -> [(freshTable 1) {position = 450 :+ 200}]
-              4033 -> [(freshGrashia (1)) {position = 340 :+ (185)}]
-              4066 -> [(freshGrashia (1)) {position = 340 :+ (185)}]
-              4060 -> [(freshGrashia (1)) {position = 340 :+ (40)}]
-              4110 -> [(freshGrashia (1)) {position = 340 :+ (40)}]
-              4160 -> [(freshGrashia (1)) {position = 340 :+ (40)}]
-              4166 -> [(freshGrashia (1)) {position = 340 :+ (185), hasItem = True}]
-              4200 -> [(freshGrashia (1)) {position = 340 :+ (185), hasItem = True}]
-              4233 -> [(freshGrashia (1)) {position = 340 :+ (185), hasItem = False}]
-              4266 -> [(freshGrashia (1)) {position = 340 :+ (185), hasItem = False}]
+              4033 -> [(freshGrashia 1) {position = 340 :+ 185}]
+              4066 -> [(freshGrashia 1) {position = 340 :+ 185}]
+              4060 -> [(freshGrashia 1) {position = 340 :+ 40}]
+              4110 -> [(freshGrashia 1) {position = 340 :+ 40}]
+              4160 -> [(freshGrashia 1) {position = 340 :+ 40}]
+              4166 -> [(freshGrashia 1) {position = 340 :+ 185, hasItem = True}]
+              4200 -> [(freshGrashia 1) {position = 340 :+ 185, hasItem = True}]
+              4233 -> [(freshGrashia 1) {position = 340 :+ 185, hasItem = False}]
+              4266 -> [(freshGrashia 1) {position = 340 :+ 185, hasItem = False}]
               4150 -> [freshLandScapeGround {position = 479 :+ (-180)}]
               4203 -> [(freshJumper (-1)) {position = 340 :+ (-180)}]
               4273 -> [(freshJumper (-1)) {position = 340 :+ (-180)}]
@@ -1239,10 +1371,10 @@ updateMonadius realKeys (Monadius (variables, objects)) =
               4540 -> [(freshDucker (-1)) {position = 340 :+ 0}]
               4560 -> [(freshGrashia (-1)) {position = 340 :+ (-185)}]
               4580 -> [(freshScrambleHatch (-1)) {position = 360 :+ (-50)}]
-              4603 -> if isRevival then [] else [(freshDucker 1) {position = (-340) :+ 0}, (freshJumper (1)) {position = (-340) :+ 150, velocity = 3 :+ 0}]
-              4663 -> [(freshDucker 1) {position = (-340) :+ 0}] ++ if isEasy then [] else [(freshJumper (1)) {position = (-340) :+ 150, velocity = 3 :+ 0}]
-              4723 -> if isRevival then [] else [(freshDucker 1) {position = (-340) :+ 0}, (freshJumper (1)) {position = (-340) :+ 150, velocity = 3 :+ 0}]
-              4783 -> [(freshDucker 1) {position = (-340) :+ 0}] ++ if isEasy then [] else [(freshJumper (1)) {position = (-340) :+ 150, velocity = 3 :+ 0}]
+              4603 -> if isRevival then [] else [(freshDucker 1) {position = (-340) :+ 0}, (freshJumper 1) {position = (-340) :+ 150, velocity = 3 :+ 0}]
+              4663 -> (freshDucker 1) {position = (-340) :+ 0} : ([(freshJumper 1) {position = (- 340) :+ 150, velocity = 3 :+ 0} | not isEasy])
+              4723 -> if isRevival then [] else [(freshDucker 1) {position = (-340) :+ 0}, (freshJumper 1) {position = (-340) :+ 150, velocity = 3 :+ 0}]
+              4783 -> (freshDucker 1) {position = (-340) :+ 0} : ([(freshJumper 1) {position = (- 340) :+ 150, velocity = 3 :+ 0} | not isEasy])
               4680 -> [(freshScrambleHatch (-1)) {position = 360 :+ (-200)}]
               4900 -> map (\y -> freshFlyer {position = 340 :+ y}) [-100, 100]
               4930 -> map (\y -> freshFlyer {position = 340 :+ y}) [-66, 66]
@@ -1251,52 +1383,55 @@ updateMonadius realKeys (Monadius (variables, objects)) =
               5041 -> [(freshDucker (-1)) {position = 340 :+ (-180)}]
               5061 -> [(freshDucker (-1)) {position = 340 :+ (-180)}]
               5081 -> [(freshDucker (-1)) {position = 340 :+ (-180)}]
-              5101 -> if isRevival then [] else ([(freshDucker (-1)) {position = 340 :+ (-180)}] ++ if isEasy then [] else [(freshDucker (1)) {position = (-340) :+ (180)}])
-              5121 -> if isRevival then [] else ([(freshDucker (-1)) {position = 340 :+ (-180)}] ++ if isEasy then [] else [(freshDucker (1)) {position = (-340) :+ (180)}])
-              5141 -> if isRevival then [] else ([(freshDucker (-1)) {position = 340 :+ (-180)}] ++ if isEasy then [] else [(freshDucker (1)) {position = (-340) :+ (180)}])
+              5101 -> if isRevival then [] else (freshDucker (-1)) {position = 340 :+ (-180)} : ([(freshDucker 1) {position = (- 340) :+ 180} | not isEasy])
+              5121 -> if isRevival then [] else (freshDucker (-1)) {position = 340 :+ (-180)} : ([(freshDucker 1) {position = (- 340) :+ 180} | not isEasy])
+              5141 -> if isRevival then [] else (freshDucker (-1)) {position = 340 :+ (-180)} : ([(freshDucker 1) {position = (- 340) :+ 180} | not isEasy])
               5261 -> [freshTurnGearSquad {position = 340 :+ (-150)}]
               5364 -> [(freshScrambleHatch (-1)) {position = 360 :+ (-200)}]
-              5151 -> [(freshDucker (-1)) {position = (-340) :+ (0)}]
-              5181 -> [(freshDucker (-1)) {position = (-340) :+ (0)}]
-              5211 -> [(freshDucker (-1)) {position = (-340) :+ (0)}]
-              5241 -> [(freshDucker (-1)) {position = (-340) :+ (0)}]
-              5321 -> [(freshDucker (-1)) {position = 340 :+ 150}] ++ if isEasy then [] else [(freshJumper (1)) {position = (-340) :+ (180), velocity = 3 :+ 0}]
+              5151 -> [(freshDucker (-1)) {position = (-340) :+ 0}]
+              5181 -> [(freshDucker (-1)) {position = (-340) :+ 0}]
+              5211 -> [(freshDucker (-1)) {position = (-340) :+ 0}]
+              5241 -> [(freshDucker (-1)) {position = (-340) :+ 0}]
+              5321 -> (freshDucker (-1)) {position = 340 :+ 150} : ([(freshJumper 1) {position = (- 340) :+ 180, velocity = 3 :+ 0} | not isEasy])
               5361 -> [(freshDucker (-1)) {position = 340 :+ 150}]
               5401 -> [(freshDucker (-1)) {position = 340 :+ 150}]
-              5441 -> [(freshDucker (-1)) {position = 340 :+ 150}] ++ if isEasy then [] else map (\y -> freshStalk {position = 340 :+ y}) [-140, -70, 0]
+              5441 -> (freshDucker (-1)) {position = 340 :+ 150} : if isEasy then [] else map (\y -> freshStalk {position = 340 :+ y}) [-140, -70, 0]
               5461 -> [(freshDucker (-1)) {position = 340 :+ 150}]
               5451 -> [(freshGrashia (-1)) {position = 340 :+ 160, hasItem = True}]
               5060 -> [(freshVolcano (-1)) {position = 480 :+ (-100)}]
-              5200 -> [(freshGrashia (-1)) {position = 340 :+ 70}] ++ [(freshDucker (-1)) {position = 340 :+ 70}]
-              5235 -> [(freshGrashia (-1)) {position = 340 :+ 40}] ++ [(freshDucker (-1)) {position = 340 :+ 40}]
-              5258 -> [(freshGrashia (-1)) {position = 340 :+ 10}] ++ [(freshDucker (-1)) {position = 340 :+ 10}]
-              5285 -> [(freshGrashia (-1)) {position = 340 :+ (-20)}] ++ [(freshDucker (-1)) {position = 340 :+ (-20)}]
-              5316 -> [(freshGrashia (-1)) {position = 340 :+ (-50)}] ++ [(freshDucker (-1)) {position = 340 :+ (-50)}]
-              5310 -> [(freshVolcano (1)) {position = 480 :+ (150)}]
-              5450 -> [(freshGrashia (1)) {position = 340 :+ (-20)}]
-              5485 -> [(freshGrashia (1)) {position = 340 :+ 10}]
-              5508 -> [(freshGrashia (1)) {position = 340 :+ 40}]
-              5535 -> [(freshGrashia (1)) {position = 340 :+ 70}]
-              5566 -> [(freshGrashia (1)) {position = 340 :+ 100}]
+              5200 -> (freshGrashia (-1)) {position = 340 :+ 70} : [(freshDucker (-1)) {position = 340 :+ 70}]
+              5235 -> (freshGrashia (-1)) {position = 340 :+ 40} : [(freshDucker (-1)) {position = 340 :+ 40}]
+              5258 -> (freshGrashia (-1)) {position = 340 :+ 10} : [(freshDucker (-1)) {position = 340 :+ 10}]
+              5285 -> (freshGrashia (-1)) {position = 340 :+ (-20)} : [(freshDucker (-1)) {position = 340 :+ (-20)}]
+              5316 -> (freshGrashia (-1)) {position = 340 :+ (-50)} : [(freshDucker (-1)) {position = 340 :+ (-50)}]
+              5310 -> [(freshVolcano 1) {position = 480 :+ 150}]
+              5450 -> [(freshGrashia 1) {position = 340 :+ (-20)}]
+              5485 -> [(freshGrashia 1) {position = 340 :+ 10}]
+              5508 -> [(freshGrashia 1) {position = 340 :+ 40}]
+              5535 -> [(freshGrashia 1) {position = 340 :+ 70}]
+              5566 -> [(freshGrashia 1) {position = 340 :+ 100}]
               5811 -> [(freshDucker (-1)) {position = (-340) :+ 0}]
               5841 -> [(freshDucker (-1)) {position = (-340) :+ 0}]
               5871 -> [(freshDucker (-1)) {position = (-340) :+ 0}]
               5901 -> [(freshDucker (-1)) {position = (-340) :+ 0}]
-              6001 -> if isEasy then [(freshDucker (-1)) {position = (-340) :+ 150}] else []
-              6031 -> if isEasy then [(freshDucker (-1)) {position = (-340) :+ 150}] else []
-              6061 -> if isEasy then [(freshDucker (-1)) {position = (-340) :+ 150}] else []
-              6091 -> if isEasy then [(freshDucker (-1)) {position = (-340) :+ 150}] else []
-              5800 -> [(freshScrambleHatch (-1)) {position = 360 :+ (-200)}, (freshScrambleHatch (1)) {position = 360 :+ (200)}]
-              5950 -> [(freshScrambleHatch (-1)) {position = 360 :+ (-200)}, (freshScrambleHatch (1)) {position = 360 :+ (200)}]
-              6100 -> [(freshScrambleHatch (-1)) {position = 360 :+ (-200)}, (freshScrambleHatch (1)) {position = 360 :+ (200)}]
+              6001 -> ([(freshDucker (- 1)) {position = (- 340) :+ 150} | isEasy])
+              6031 -> ([(freshDucker (- 1)) {position = (- 340) :+ 150} | isEasy])
+              6061 -> ([(freshDucker (- 1)) {position = (- 340) :+ 150} | isEasy])
+              6091 -> ([(freshDucker (- 1)) {position = (- 340) :+ 150} | isEasy])
+              5800 -> [(freshScrambleHatch (-1)) {position = 360 :+ (-200)}, (freshScrambleHatch 1) {position = 360 :+ 200}]
+              5950 -> [(freshScrambleHatch (-1)) {position = 360 :+ (-200)}, (freshScrambleHatch 1) {position = 360 :+ 200}]
+              6100 -> [(freshScrambleHatch (-1)) {position = 360 :+ (-200)}, (freshScrambleHatch 1) {position = 360 :+ 200}]
               6116 -> [freshSabbathicAgent]
               _ -> []
           )
-            ++ ( if (optionCount < powerUpLevels vicViper ! 4)
-                   then [freshOption {position = position vicViper, optionTag = optionCount + 1}]
-                   else []
+            ++ ( [ freshOption
+                     { position = position vicViper,
+                       optionTag = optionCount + 1
+                     }
+                   | optionCount < powerUpLevels vicViper ! 4
+                 ]
                )
-            ++ ( if (clock `mod` 320 == 0 && clock >= 1280 && clock <= 6400)
+            ++ ( if clock `mod` 320 == 0 && clock >= 1280 && clock <= 6400
                    then [freshLandScapeGround {position = 479 :+ 220}, freshLandScapeGround {position = 479 :+ (-220)}]
                    else []
                )
@@ -1305,7 +1440,7 @@ updateMonadius realKeys (Monadius (variables, objects)) =
         optionCount =
           length $
             filter
-              ( \o -> case o of
+              ( \case
                   Option {} -> True
                   _ -> False
               )
@@ -1316,7 +1451,7 @@ updateMonadius realKeys (Monadius (variables, objects)) =
     vicViper =
       fromJust $
         find
-          ( \obj -> case obj of
+          ( \case
               VicViper {} -> True
               _ -> False
           )
@@ -1328,14 +1463,14 @@ powerUpLimits = [5, 1, 1, 1, 4, 1]
 
 weaponTypes :: GameObject -> [WeaponType]
 weaponTypes viper@VicViper {} =
-  [ if powerUpLevels viper ! gaugeOfGLdouble > 0
+  ( if powerUpLevels viper ! gaugeOfGLdouble > 0
       then GLdoubleShot
       else
         if powerUpLevels viper ! gaugeOfLaser > 0
           then Laser
           else NormalShot
-  ]
-    ++ if powerUpLevels viper ! gaugeOfMissile > 0 then [Missile] else []
+  ) :
+  ([Missile | powerUpLevels viper ! gaugeOfMissile > 0])
 weaponTypes _ = []
 
 -------------------------
@@ -1348,18 +1483,18 @@ renderMonadius (Monadius (variables, objects)) = do
   putDebugStrLn $ show $ length objects
   mapM_ renderGameObject objects
   preservingMatrix $ do
-    translate (Vector3 (-300) (220) (0 :: GLdouble))
+    translate (Vector3 (-300) 220 (0 :: GLdouble))
     renderWithShade (Color3 1 1 (1 :: GLdouble)) (Color3 0 0 (1 :: GLdouble)) $ do
       scale (0.2 :: GLdouble) 0.2 0.2
       renderString MonoRoman scoreStr
   preservingMatrix $ do
-    translate (Vector3 (0) (220) (0 :: GLdouble))
+    translate (Vector3 0 220 (0 :: GLdouble))
     renderWithShade (Color3 1 1 (1 :: GLdouble)) (Color3 0 0 (1 :: GLdouble)) $ do
       scale (0.2 :: GLdouble) 0.2 0.2
       renderString MonoRoman scoreStr2
   where
-    scoreStr = "1P " ++ ((padding '0' 8) . show . totalScore) variables
-    scoreStr2 = if isNothing $ playTitle variables then "HI " ++ ((padding '0' 8) . show . hiScore) variables else (fromJust $ playTitle variables)
+    scoreStr = "1P " ++ (padding '0' 8 . show . totalScore) variables
+    scoreStr2 = if isNothing $ playTitle variables then "HI " ++ (padding '0' 8 . show . hiScore) variables else fromJust (playTitle variables)
 
     gameclock = gameClock variables
 
@@ -1369,7 +1504,7 @@ renderMonadius (Monadius (variables, objects)) = do
       let x :+ y = position gauge
       translate (Vector3 x y 0)
       color (Color3 (1.0 :: GLdouble) 1.0 1.0)
-      mapM_ (\(i, j) -> (if (i == activeGauge) then renderActive else renderNormal) j (isLimit i) i) $
+      mapM_ (\(i, j) -> (if i == activeGauge then renderActive else renderNormal) j (isLimit i) i) $
         zip [0 .. 5] [0, 90 .. 450]
       where
         w = 80
@@ -1379,7 +1514,7 @@ renderMonadius (Monadius (variables, objects)) = do
           preservingMatrix $ do
             translate (Vector3 x 0 (0 :: GLdouble))
             renderPrimitive LineLoop $ ugoVertices2D 0 1 [(0, 0), (w, 0), (w, h), (0, h)]
-            if l then renderPrimitive Lines $ ugoVertices2D 0 1 [(0, 0), (w, h), (w, 0), (0, h)] else return ()
+            when l $ renderPrimitive Lines $ ugoVertices2D 0 1 [(0, 0), (w, h), (w, 0), (0, h)]
           preservingMatrix $ do
             ugoTranslate x 0 0 3
             translate (Vector3 (w / 2) 0 (0 :: GLdouble))
@@ -1392,7 +1527,7 @@ renderMonadius (Monadius (variables, objects)) = do
           preservingMatrix $ do
             translate (Vector3 x 0 0)
             renderPrimitive LineLoop $ ugoVertices2DFreq 0 5 2 [(0, 0), (w, 0), (w, h), (0, h)]
-            if l then renderPrimitive Lines $ ugoVertices2DFreq 0 5 2 [(0, 0), (w, h), (w, 0), (0, h)] else return ()
+            when l $ renderPrimitive Lines $ ugoVertices2DFreq 0 5 2 [(0, 0), (w, h), (w, 0), (0, h)]
           preservingMatrix $ do
             ugoTranslateFreq x 0 0 5 2
             translate (Vector3 (w / 2) 0 (0 :: GLdouble))
@@ -1425,17 +1560,17 @@ renderMonadius (Monadius (variables, objects)) = do
               ugoVertices2D
                 0
                 2
-                [((-14), (-1)), ((-12), 5), ((-20), 13), (-14, 13), (2, 5), (8, 1), (32, 1), (32, (-1)), (24, (-3)), (16, (-3))]
+                [(-14, -1), (-12, 5), (-20, 13), (-14, 13), (2, 5), (8, 1), (32, 1), (32, -1), (24, -3), (16, -3)]
             renderPrimitive LineStrip $
               ugoVertices2D
                 0
                 2
-                [((-10), (-1)), (14, (-1)), (18, (-5)), (4, (-9)), ((-2), (-9))]
+                [(-10, -1), (14, -1), (18, -5), (4, -9), (-2, -9)]
             renderPrimitive LineLoop $
               ugoVertices2D
                 0
                 2
-                [((-18), 3), ((-16), 3), ((-16), (-3)), ((-18), (-3))]
+                [(-18, 3), (-16, 3), (-16, -3), (-18, -3)]
           renderWithShade (Color3 (0.92 :: GLdouble) 0.79 0.62) (Color3 (0.75 :: GLdouble) 0.38 0.19) $ do
             renderPrimitive LineStrip $
               ugoVertices2D
@@ -1447,13 +1582,13 @@ renderMonadius (Monadius (variables, objects)) = do
               ugoVertices2D
                 0
                 2
-                [((-14), (-1)), ((-10), (-1)), ((-2), (-9)), ((-4), (-9)), ((-10), (-7)), ((-14), (-3))] -- identification blue coting
+                [(-14, -1), (-10, -1), (-2, -9), (-4, -9), (-10, -7), (-14, -3)] -- identification blue coting
           renderWithShade (Color3 (0 :: GLdouble) 0 0.8) (Color3 (0.0 :: GLdouble) 0.0 0.4) $ do
             renderPrimitive LineLoop $
               ugoVertices2D
                 0
                 4
-                [((-36), 1), ((-28), 5), ((-24), 5), ((-20), 1), ((-20), (-1)), ((-24), (-5)), ((-28), (-5)), ((-36), (-1))] -- backfire
+                [(-36, 1), (-28, 5), (-24, 5), (-20, 1), (-20, -1), (-24, -5), (-28, -5), (-36, -1)] -- backfire
       where
         pishaMagnitudeX :: GLdouble
         pishaMagnitudeY :: GLdouble
@@ -1469,34 +1604,34 @@ renderMonadius (Monadius (variables, objects)) = do
             [ (5, 9),
               (9, 7),
               (13, 3),
-              (13, (-3)),
-              (9, (-7)),
-              (5, (-9)),
-              ((-5), (-9)),
-              ((-9), (-7)),
-              ((-13), (-3)),
-              ((-13), 3),
-              ((-9), 7),
-              ((-5), 9)
+              (13, -3),
+              (9, -7),
+              (5, -9),
+              (-5, -9),
+              (-9, -7),
+              (-13, -3),
+              (-13, 3),
+              (-9, 7),
+              (-5, 9)
             ]
       renderWithShade (Color3 (1.0 :: GLdouble) 0.45 0) (Color3 (0.4 :: GLdouble) 0.2 0) $
         renderPrimitive LineStrip $
           ugoVertices2D
             0
             1
-            [ ((-12.0), (3.4)),
+            [ (-12.0, 3.4),
               (0.8, 8.7),
-              ((-8.1), (-0.9)),
+              (-8.1, -0.9),
               (4.0, 5.8),
               (4.3, 5.6),
-              ((-4.4), (-6.8)),
-              ((-4.1), (-6.9)),
+              (-4.4, -6.8),
+              (-4.1, -6.9),
               (8.3, 0.8),
               (9.0, 0.6),
-              (2.0, (-7.2))
+              (2.0, -7.2)
             ]
     renderGameObject StandardMissile {position = x :+ y, velocity = v} = preservingMatrix $ do
-      let dir = (phase v) :: GLdouble
+      let dir = phase v :: GLdouble
       translate (Vector3 x y 0)
       rotate (dir / pi * 180) (Vector3 0 0 (1 :: GLdouble))
       color (Color3 (1.0 :: GLdouble) 0.9 0.5)
@@ -1508,7 +1643,7 @@ renderMonadius (Monadius (variables, objects)) = do
         translate (Vector3 x y 0)
         rotate (phse / pi * 180) (Vector3 0 0 (1 :: GLdouble))
         color (Color3 (1.0 :: GLdouble) 0.9 0.5)
-        renderPrimitive Lines $ ugoVertices2D 0 1 [(0, 0), ((-5), 0), ((-9), 0), ((-11), 0)]
+        renderPrimitive Lines $ ugoVertices2D 0 1 [(0, 0), (-5, 0), (-9, 0), (-11, 0)]
     renderGameObject laser@StandardLaser {position = x :+ y, velocity = v} =
       if age laser < 1
         then return ()
@@ -1534,28 +1669,28 @@ renderMonadius (Monadius (variables, objects)) = do
       translate (Vector3 x y 0)
       renderWithShade (Color3 (0.9 :: GLdouble) 0.9 0.9) (Color3 (0.4 :: GLdouble) 0.4 0.4) $ do
         futa >> neji >> toge
-        rotate (180) (Vector3 1 0 (0 :: GLdouble)) >> toge
-        rotate (180) (Vector3 0 1 (0 :: GLdouble)) >> futa >> neji >> toge
-        rotate (180) (Vector3 1 0 (0 :: GLdouble)) >> toge
+        rotate 180 (Vector3 1 0 (0 :: GLdouble)) >> toge
+        rotate 180 (Vector3 0 1 (0 :: GLdouble)) >> futa >> neji >> toge
+        rotate 180 (Vector3 1 0 (0 :: GLdouble)) >> toge
       renderWithShade (Color3 (1.0 :: GLdouble) 0.0 0.0) (Color3 (0.3 :: GLdouble) 0.3 0.0) $ do
         nakami
       where
-        futa = renderPrimitive LineStrip $ ugoVertices2D 0 1 [((-10), 6), ((-6), 10), (6, 10), (10, 6)]
+        futa = renderPrimitive LineStrip $ ugoVertices2D 0 1 [(-10, 6), (-6, 10), (6, 10), (10, 6)]
         neji =
-          (renderPrimitive LineStrip $ ugoVertices2D 0 1 [(12, 4), (12, (-4))])
-            >> (renderPrimitive LineStrip $ ugoVertices2D 0 1 [(16, 2), (16, (-2))])
+          renderPrimitive LineStrip (ugoVertices2D 0 1 [(12, 4), (12, -4)])
+            >> renderPrimitive LineStrip (ugoVertices2D 0 1 [(16, 2), (16, -2)])
         toge = renderPrimitive LineStrip $ ugoVertices2D 0 1 [(10, 8), (16, 14)]
         nakami =
           rotate 145 (Vector3 0.2 0.2 (1 :: GLdouble)) >> scale 9 6 (1 :: GLdouble)
-            >> (renderPrimitive LineStrip $ ugoVertices2D 0 0.2 $ map (\n -> (cos $n * pi / 8, sin $n * pi / 8)) [1, 15, 3, 13, 5, 11, 7, 9])
+            >> renderPrimitive LineStrip (ugoVertices2D 0 0.2 $ map (\n -> (cos $n * pi / 8, sin $n * pi / 8)) [1, 15, 3, 13, 5, 11, 7, 9])
     renderGameObject DiamondBomb {position = (x :+ y), age = clock} = preservingMatrix $ do
       translate (Vector3 x y 0)
       rotate (90 * intToGLdouble (clock `mod` 4)) (Vector3 0 0 (1 :: GLdouble))
       color (Color3 (1 :: GLdouble) 1 1)
-      renderPrimitive LineLoop $ vertices2D 0 $ [a, b, c]
+      renderPrimitive LineLoop $ vertices2D 0 [a, b, c]
       color (Color3 (0.5 :: GLdouble) 0.5 0.5)
-      renderPrimitive Lines $ vertices2D 0 $ [a, d, a, e]
-      renderPrimitive LineStrip $ vertices2D 0 $ [c, d, e, b]
+      renderPrimitive Lines $ vertices2D 0 [a, d, a, e]
+      renderPrimitive LineStrip $ vertices2D 0 [c, d, e, b]
       where
         [a, b, c, d, e] = [(0, 0), (r, 0), (0, r), (- r, 0), (0, - r)]
         r = diamondBombSize
@@ -1584,13 +1719,13 @@ renderMonadius (Monadius (variables, objects)) = do
       translate (Vector3 x y 0)
       color (if item then (Color3 1.0 0.2 0.2 :: Color3 GLdouble) else (Color3 0.3 1.0 0.7 :: Color3 GLdouble))
       rotate (phase v / pi * 180) (Vector3 0 0 (1 :: GLdouble))
-      renderPrimitive LineLoop $ ugoVertices2D 0 2 $ [(-2, 0), (-6, 4), (-10, 0), (-6, -4)]
-      renderPrimitive LineLoop $ ugoVertices2D 0 2 $ [(2, 4), (16, 4), (4, 16), (-10, 16)]
-      renderPrimitive LineLoop $ ugoVertices2D 0 2 $ [(2, -4), (16, -4), (4, -16), (-10, -16)]
+      renderPrimitive LineLoop $ ugoVertices2D 0 2 [(-2, 0), (-6, 4), (-10, 0), (-6, -4)]
+      renderPrimitive LineLoop $ ugoVertices2D 0 2 [(2, 4), (16, 4), (4, 16), (-10, 16)]
+      renderPrimitive LineLoop $ ugoVertices2D 0 2 [(2, -4), (16, -4), (4, -16), (-10, -16)]
     renderGameObject Ducker {position = (x :+ y), hitDisp = hd, hasItem = item, velocity = v, gVelocity = g, age = a} = preservingMatrix $ do
       translate (Vector3 x y 0)
-      if signum (imagPart g) > 0 then scale 1 (-1) (1 :: GLdouble) else return ()
-      if signum (realPart v) < 0 then scale (-1) 1 (1 :: GLdouble) else return ()
+      when (signum (imagPart g) > 0) $ scale 1 (-1) (1 :: GLdouble)
+      when (signum (realPart v) < 0) $ scale (-1) 1 (1 :: GLdouble)
       --after this, ducker is on the lower ground, looking right
       color (if item then (Color3 1.0 0.2 0.2 :: Color3 GLdouble) else (Color3 0.3 1.0 0.7 :: Color3 GLdouble))
       renderShape (0 :+ 0) hd
@@ -1605,9 +1740,9 @@ renderMonadius (Monadius (variables, objects)) = do
       translate (Vector3 x y 0)
       color (if item then (Color3 1.0 0.2 0.2 :: Color3 GLdouble) else (Color3 0.3 1.0 0.7 :: Color3 GLdouble))
       renderShape (0 :+ 0) hd
-      if gsign > 0 then rotate 180 (Vector3 (1 :: GLdouble) 0 0) else return () -- after this you can assume that the object is not upside down
-      renderPrimitive LineStrip $ ugoVertices2D 0 2 $ [(15, -5), (25, -5 + absvy * leg), (25, -25 + absvy * leg)]
-      renderPrimitive LineStrip $ ugoVertices2D 0 2 $ [(-15, -5), (-25, -5 + absvy * leg), (-25, -25 + absvy * leg)]
+      when (gsign > 0) $ rotate 180 (Vector3 (1 :: GLdouble) 0 0) -- after this you can assume that the object is not upside down
+      renderPrimitive LineStrip $ ugoVertices2D 0 2 [(15, -5), (25, -5 + absvy * leg), (25, -25 + absvy * leg)]
+      renderPrimitive LineStrip $ ugoVertices2D 0 2 [(-15, -5), (-25, -5 + absvy * leg), (-25, -25 + absvy * leg)]
       where
         gsign = signum $ imagPart g
         absvy = imagPart v * gsign -- if falling (+) ascending (-)
@@ -1617,49 +1752,43 @@ renderMonadius (Monadius (variables, objects)) = do
       translate (Vector3 x y 0)
       renderShape (0 :+ 0) hd
       renderPrimitive LineLoop $ ugoVertices2D 0 2 $ map (\r -> (nvx * r, nvy * r)) [16, 32]
-      if m == 1
-        then do
-          renderShape 0 $ Circular (16 :+ 12 * gsign) 4
-          renderShape 0 $ Circular ((-16) :+ 12 * gsign) 4
-        else return ()
+      when (m == 1) $ do
+        renderShape 0 $ Circular (16 :+ 12 * gsign) 4
+        renderShape 0 $ Circular ((-16) :+ 12 * gsign) 4
       where
         nvx :+ nvy = nv
         gsign = signum $ imagPart g
     renderGameObject me@ScrambleHatch {position = (x :+ y), hitDisp = _, gravity = g, gateAngle = angl} = preservingMatrix $ do
       translate (Vector3 x y 0)
       color (Color3 (1.2 * (1 - hpRate)) 0.5 (1.6 * hpRate) :: Color3 GLdouble)
-      if gsign > 0 then rotate 180 (Vector3 (1 :: GLdouble) 0 0) else return () -- after this you can assume that the object is not upside down
-      renderPrimitive LineLoop $ ugoVertices2DFreq 0 (angl * 2) 1 $ [(-45, 1), (-45, hatchHeight), (45, hatchHeight), (45, 1)]
+      when (gsign > 0) $ rotate 180 (Vector3 (1 :: GLdouble) 0 0) -- after this you can assume that the object is not upside down
+      renderPrimitive LineLoop $ ugoVertices2DFreq 0 (angl * 2) 1 [(-45, 1), (-45, hatchHeight), (45, hatchHeight), (45, 1)]
       preservingMatrix $ do
         translate (Vector3 45 hatchHeight (0 :: GLdouble))
         rotate (- angl / pi * 180) (Vector3 0 0 (1 :: GLdouble))
-        renderPrimitive LineLoop $ ugoVertices2DFreq 0 (angl * 1) 2 $ [(0, 0), (-45, 0), (-45, 10)]
+        renderPrimitive LineLoop $ ugoVertices2DFreq 0 angl 2 [(0, 0), (-45, 0), (-45, 10)]
       preservingMatrix $ do
         translate (Vector3 (-45) hatchHeight (0 :: GLdouble))
         rotate (angl / pi * 180) (Vector3 0 0 (1 :: GLdouble))
-        renderPrimitive LineLoop $ ugoVertices2DFreq 0 (angl * 1) 2 $ [(0, 0), (45, 0), (45, 10)]
+        renderPrimitive LineLoop $ ugoVertices2DFreq 0 angl 2 [(0, 0), (45, 0), (45, 10)]
       where
         gsign = signum $ imagPart g
-        hpRate = (intToGLdouble $ hp me) / (intToGLdouble hatchHP)
+        hpRate = intToGLdouble (hp me) / intToGLdouble hatchHP
     renderGameObject LandScapeBlock {position = pos, hitDisp = hd} = preservingMatrix $ do
       color (Color3 0.6 0.2 0 :: Color3 GLdouble)
       renderShape pos hd
-      if treasure !! (baseGameLevel variables)
-        then do
-          color (Color3 0.7 0.23 0 :: Color3 GLdouble)
-          translate (Vector3 0 0 (60 :: GLdouble))
-          renderShape pos hd
-          color (Color3 0.5 0.17 0 :: Color3 GLdouble)
-          translate (Vector3 0 0 (-120 :: GLdouble))
-          renderShape pos hd
-        else return ()
+      when (treasure !! baseGameLevel variables) $ do
+        color (Color3 0.7 0.23 0 :: Color3 GLdouble)
+        translate (Vector3 0 0 (60 :: GLdouble))
+        renderShape pos hd
+        color (Color3 0.5 0.17 0 :: Color3 GLdouble)
+        translate (Vector3 0 0 (-120 :: GLdouble))
+        renderShape pos hd
     renderGameObject me@Particle {position = x :+ y, particleColor = Color3 mr mg mb} = preservingMatrix $ do
-      if age me >= 0
-        then do
-          translate (Vector3 x y 0)
-          color (Color3 r g b)
-          renderShape (0 :+ 0) $ Circular (0 :+ 0) (size me * extent)
-        else return ()
+      when (age me >= 0) $ do
+        translate (Vector3 x y 0)
+        color (Color3 r g b)
+        renderShape (0 :+ 0) $ Circular (0 :+ 0) (size me * extent)
       where
         extent = 0.5 + intCut (intToGLdouble (age me) / decayTime me)
         decay = exp $ intCut $ - intToGLdouble (age me) / decayTime me
@@ -1678,7 +1807,7 @@ renderMonadius (Monadius (variables, objects)) = do
     vicViper =
       fromJust $
         find
-          ( \obj -> case obj of
+          ( \case
               VicViper {} -> True
               _ -> False
           )
@@ -1714,9 +1843,9 @@ renderMonadius (Monadius (variables, objects)) = do
       where
         flipper :: GLdouble
         flipper = fromIntegral $ (gameclock `div` intrvl) `mod` 1024
-        dr = ugoRange * vibrator (phi)
-        theta = (x + sqrt (2) * y + sqrt (3) * z + 573) * 400 * flipper
-        phi = (x + sqrt (3) * y + sqrt (7) * z + 106) * 150 * flipper
+        dr = ugoRange * vibrator phi
+        theta = (x + sqrt 2 * y + sqrt 3 * z + 573) * 400 * flipper
+        phi = (x + sqrt 3 * y + sqrt 7 * z + 106) * 150 * flipper
         vibrator a = 0.5 * (1 + sin a)
 
     ugoTranslate x y z ugoRange = ugoTranslateFreq x y z ugoRange standardUgoInterval
@@ -1724,9 +1853,9 @@ renderMonadius (Monadius (variables, objects)) = do
       where
         flipper :: GLdouble
         flipper = fromIntegral $ (gameclock `div` intvl) `mod` 1024
-        dr = ugoRange * vibrator (phi)
-        theta = (x + sqrt (2) * y + sqrt (3) * z + 573) * 400 * flipper
-        phi = (x + sqrt (3) * y + sqrt (7) * z + 106) * 150 * flipper
+        dr = ugoRange * vibrator phi
+        theta = (x + sqrt 2 * y + sqrt 3 * z + 573) * 400 * flipper
+        phi = (x + sqrt 3 * y + sqrt 7 * z + 106) * 150 * flipper
         vibrator a = 0.5 * (1 + sin a)
 
     ugoVertices2D z r xys = ugoVertices2DFreq z r standardUgoInterval xys
