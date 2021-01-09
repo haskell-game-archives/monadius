@@ -17,10 +17,10 @@ module Util
   )
 where
 
+import Control.Monad
 import Data.Array (Array (), Ix (), (!), (//))
 import Data.Complex
 import Data.Maybe
-import Control.Monad
 import Graphics.Rendering.OpenGL
 
 -- | Switch this to True to get debug outputs. Be careful: you get a crash under

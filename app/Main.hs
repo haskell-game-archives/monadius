@@ -11,11 +11,12 @@ module Main (main) where
 
 import Control.Exception (SomeException (..), catch)
 import Control.Monad (mplus, zipWithM_)
+import Data.Char
 import Data.Complex
+import Data.Functor
 import Data.IORef
 import Data.List
 import Data.Maybe
-import Data.Char
 import Demo (ReplayInfo (..), demoData)
 import Game (isGameover, render, update)
 import Graphics.UI.GLUT hiding (position)
@@ -48,7 +49,7 @@ presentationMode :: Bool
 presentationMode = True
 
 loadReplay :: String -> IO ReplayInfo
-loadReplay filename = readFile filename >>= (return . read)
+loadReplay filename = readFile filename <&> read
 
 main :: IO ()
 main =

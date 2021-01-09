@@ -285,8 +285,7 @@ initialMonadius initVs = Monadius (initGameVariables, initGameObjects)
   where
     initGameVariables = initVs
 
-    initGameObjects =
-      stars ++ [freshVicViper, freshPowerUpGauge]
+    initGameObjects = stars ++ [freshVicViper, freshPowerUpGauge]
 
     stars =
       take 26 $
@@ -336,13 +335,8 @@ stageClearTime = 7800
 -- these lists are game rank modifiers.
 bacterianShotSpeedList, duckerShotWay, jumperShotFactor, grashiaShotSpeedFactor :: [GLdouble]
 bacterianShotSpeedList = [8, 4, 6, 8] ++ cycle [12, 8]
-
-duckerShotCount = [2, 1, 1, 3] ++ repeat 2
-
 duckerShotWay = [1, 1, 2, 1] ++ cycle [2, 2]
-
 jumperShotFactor = [0.5, 0.5, 0.5, 0.5] ++ cycle [0.8, 0.5]
-
 grashiaShotSpeedFactor = [1, 1, 1, 1] ++ cycle [1, 0.6]
 
 flyerHitBack, particleHitBack, powerUpCapsuleHitBack, scrambleHatchHitBack, treasure, turnGearHitBack :: [Bool]
@@ -354,6 +348,7 @@ treasure = [False, False, False, False] ++ cycle [False, True]
 turnGearHitBack = [False, False, False] ++ repeat True
 
 duckerShotCount, flyerShotInterval, grashiaShotHalt, grashiaShotInterval, inceptorShotInterval, jumperShotWay, landRollShotInterval, scrambleHatchLaunchLimitAge :: [Int]
+duckerShotCount = [2, 1, 1, 3] ++ repeat 2
 flyerShotInterval = [30, infinite, 30, 15] ++ cycle [15, 15]
 grashiaShotHalt = [50, 100, 50, 50] ++ cycle [0, 0]
 grashiaShotInterval = [30, 60, 30, 30] ++ cycle [15, 5]
