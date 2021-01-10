@@ -7,7 +7,6 @@ where
 import Data.Array
 import Data.Complex
 import Graphics.UI.GLUT hiding (DebugMessage, position)
-import Graphics.UI.GLUT.Callbacks.Window
 import Monadius.Util
 
 -- | An abstracted game as a state machine.

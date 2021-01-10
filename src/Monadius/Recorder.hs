@@ -14,6 +14,7 @@ import Graphics.UI.GLUT
 import Monadius
 import Monadius.Game hiding (age, mode)
 import Monadius.Util
+import Monadius.Key
 
 data Recorder = Recorder
   { keybuf :: [[Key]],

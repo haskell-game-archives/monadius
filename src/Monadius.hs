@@ -5,14 +5,6 @@ module Monadius
     initialMonadius,
     getVariables,
     GameVariables (..),
-    shotButton,
-    missileButton,
-    powerUpButton,
-    upButton,
-    downButton,
-    leftButton,
-    rightButton,
-    selfDestructButton,
   )
 where
 
@@ -22,10 +14,11 @@ import Data.Complex
 import Data.List
 import Data.Maybe
 import Graphics.UI.GLUT hiding (DebugMessage, position)
-import Monadius.Constant.GameObject
 import Monadius.Constant.Parameter
 import Monadius.Game
+import Monadius.GameObject
 import Monadius.Util
+import Monadius.Key
 
 instance Game Monadius where
   update = updateMonadius
@@ -89,215 +82,28 @@ data ScrollBehavior
 --
 ------------------------------
 initialMonadius :: GameVariables -> Monadius
-initialMonadius initVs = Monadius (initGameVariables, initGameObjects)
+initialMonadius initGameVariables = Monadius (initGameVariables, initGameObjects)
   where
-    initGameVariables = initVs
-
+    initGameObjects :: [GameObject]
     initGameObjects = stars ++ [freshVicViper, freshPowerUpGauge]
 
-    stars =
-      take 26 $
-        zipWith
-          ( \t i ->
-              Star
-                { tag = Nothing,
-                  position = fix 320 t :+ fix 201 t,
-                  particleColor = colors !! i
-                }
-          )
-          (map (\x -> square x + x + 41) [2346, 19091 ..])
-          [1 ..]
+    stars :: [GameObject]
+    stars = take 26 $ zipWith mkStar [1 ..] $ map (\x -> square x + x + 41) [2346, 19091 ..]
+    --  ++ map (\x -> freshOption{optionTag = x}) [1..4]  -- full option inchiki
 
+mkStar :: Int -> Int -> GameObject
+mkStar i t =
+  Star
+    { tag = Nothing,
+      position = fix 320 t :+ fix 201 t,
+      particleColor = colors !! i
+    }
+  where
     fix :: Int -> Int -> GLdouble
     fix limit value = intToGLdouble (value `mod` (2 * limit) - limit)
 
-    colors = [Color3 1 1 1, Color3 1 1 0, Color3 1 0 0, Color3 0 1 1] ++ colors
-
---  ++ map (\x -> freshOption{optionTag = x}) [1..4]  -- full option inchiki
-
-{-
-Default settings of game objects and constants
--}
-downButton, leftButton, missileButton, powerUpButton, rightButton, selfDestructButton, shotButton, upButton :: Key
-downButton = SpecialKey KeyDown
-leftButton = SpecialKey KeyLeft
-missileButton = Char 'x'
-powerUpButton = Char 'c'
-rightButton = SpecialKey KeyRight
-selfDestructButton = Char 'g'
-shotButton = Char 'z'
-upButton = SpecialKey KeyUp
-
--- Cuteness to add later
--- konamiCommand = [upButton,upButton,downButton,downButton,leftButton,rightButton,leftButton,rightButton,missileButton,shotButton]
-
-gaugeOfMissile, gaugeOfGLdouble, gaugeOfLaser, gaugeOfShield :: Int
-gaugeOfMissile = 1
-gaugeOfGLdouble = 2
-gaugeOfLaser = 3
-gaugeOfShield = 5
-
-stageClearTime :: Int
-stageClearTime = 7800
-
--- these lists are game rank modifiers.
-bacterianShotSpeedList, duckerShotWay, jumperShotFactor, grashiaShotSpeedFactor :: [GLdouble]
-bacterianShotSpeedList = [8, 4, 6, 8] ++ cycle [12, 8]
-duckerShotWay = [1, 1, 2, 1] ++ cycle [2, 2]
-jumperShotFactor = [0.5, 0.5, 0.5, 0.5] ++ cycle [0.8, 0.5]
-grashiaShotSpeedFactor = [1, 1, 1, 1] ++ cycle [1, 0.6]
-
-flyerHitBack, particleHitBack, powerUpCapsuleHitBack, scrambleHatchHitBack, treasure, turnGearHitBack :: [Bool]
-flyerHitBack = [False, False, False] ++ repeat True
-particleHitBack = True : repeat False
-powerUpCapsuleHitBack = [False, False, False, False] ++ cycle [False, True]
-scrambleHatchHitBack = [False, False, False, False] ++ cycle [False, True]
-treasure = [False, False, False, False] ++ cycle [False, True]
-turnGearHitBack = [False, False, False] ++ repeat True
-
-duckerShotCount, flyerShotInterval, grashiaShotHalt, grashiaShotInterval, inceptorShotInterval, jumperShotWay, landRollShotInterval, scrambleHatchLaunchLimitAge :: [Int]
-duckerShotCount = [2, 1, 1, 3] ++ repeat 2
-flyerShotInterval = [30, infinite, 30, 15] ++ cycle [15, 15]
-grashiaShotHalt = [50, 100, 50, 50] ++ cycle [0, 0]
-grashiaShotInterval = [30, 60, 30, 30] ++ cycle [15, 5]
-inceptorShotInterval = [45, infinite, 60, 45] ++ cycle [45, 45]
-jumperShotWay = [16, 4, 8, 16] ++ cycle [24, 32]
-landRollShotInterval = [60, 120, 60, 60] ++ cycle [30, 60]
-scrambleHatchLaunchLimitAge = [400, 200, 400, 400] ++ cycle [600, 400]
-
-landScapeSensitive :: GameObject -> Bool
-landScapeSensitive StandardRailgun {} = True -- these objects has hitDispLand
-landScapeSensitive StandardLaser {} = True -- in addition to hitDisp
-landScapeSensitive Shield {} = True
-landScapeSensitive _ = False
-
-shieldPlacementMargin, shieldHitMargin :: GLdouble
-shieldPlacementMargin = 5
-shieldHitMargin = 10
-
-hatchHP :: Int
-hatchHP = 15
-
-freshDucker :: GLdouble -> GameObject
-freshDucker vg =
-  Ducker
-    { tag = Nothing,
-      position = 0 :+ 0,
-      velocity = 0 :+ 0,
-      hitDisp = Circular (0 :+ 0) smallBacterianSize,
-      hp = 1,
-      age = 0,
-      hasItem = False,
-      gVelocity = 0 :+ (8 * vg),
-      charge = 0,
-      vgun = 0 :+ 0,
-      touchedLand = False
-    }
-
-freshScrambleHatch :: GLdouble -> GameObject
-freshScrambleHatch sign =
-  ScrambleHatch
-    { tag = Nothing,
-      position = 0 :+ 0,
-      hitDisp = regulate $ Rectangular ((-45) :+ 0) (45 :+ (hatchHeight * (- sign))),
-      gravity = 0 :+ sign,
-      hp = hatchHP,
-      age = 0,
-      launchProgram = cycle $ replicate 40 [] ++ (concat . replicate 6) ([freshInterceptor {velocity = 0 :+ (-6) * sign}] : replicate 9 []),
-      gateAngle = 0
-    }
-
-freshVolcano :: GLdouble -> GameObject
-freshVolcano grvty =
-  LandScapeBlock
-    { tag = Nothing,
-      position = 0 :+ 0,
-      velocity = 0 :+ 0,
-      hitDisp =
-        Shapes $ map (regulate . (\i -> Rectangular ((120 - 33 * i + 2 * i * i) :+ sign * 30 * i) ((33 * i - 2 * i * i - 120) :+ sign * 30 * (i + 1)))) [0 .. 4]
-    }
-  where
-    sign = - grvty
-
-freshTable :: GLdouble -> GameObject
-freshTable grvty =
-  LandScapeBlock
-    { tag = Nothing,
-      position = 0 :+ 0,
-      velocity = 0 :+ 0,
-      hitDisp =
-        Shapes $
-          map
-            ( regulate
-                . ( \i ->
-                      Rectangular
-                        ((-2 ** (i + 3) + shiftSinePi i) :+ sign * 30 * i)
-                        ((2 ** (i + 3) + shiftSinePi i) :+ sign * 30 * (i + 1))
-                  )
-            )
-            [0 .. 4]
-    }
-  where
-    sign = - grvty
-
-    shiftSinePi :: (Floating a) => a -> a
-    shiftSinePi a = 5 * sin (a * 0.5 * pi)
-
-freshGrashia :: GLdouble -> GameObject
-freshGrashia sign =
-  Grashia
-    { tag = Nothing,
-      position = 0 :+ 0,
-      velocity = 0 :+ 0,
-      hitDisp = Circular 0 smallBacterianSize,
-      hp = 1,
-      age = 0,
-      hasItem = False,
-      gravity = 0 :+ sign,
-      gunVector = 0 :+ 0,
-      mode = 0
-    }
-
-freshJumper :: GLdouble -> GameObject
-freshJumper sign =
-  Jumper
-    { tag = Nothing,
-      position = 0 :+ 0,
-      velocity = 0 :+ 0,
-      hitDisp = Circular 0 smallBacterianSize,
-      hp = 1,
-      age = 0,
-      hasItem = False,
-      gravity = 0 :+ 0.36 * sign,
-      touchedLand = False,
-      jumpCounter = 0
-    }
-
-freshLandRoll :: GLdouble -> GameObject
-freshLandRoll sign = (freshGrashia sign) {mode = 1}
-
-freshLandScapeGround :: GameObject
-freshLandScapeGround =
-  LandScapeBlock
-    { tag = Nothing,
-      position = 0 :+ 0,
-      velocity = 0 :+ 0,
-      hitDisp = Rectangular ((-158) :+ (-20)) (158 :+ 20)
-    }
-
-freshSabbathicAgent :: GameObject
-freshSabbathicAgent =
-  SabbathicAgent
-    { tag = Nothing,
-      fever = 1
-    }
-
-freshScore :: Int -> GameObject
-freshScore point =
-  ScoreFragment
-    { tag = Nothing,
-      score = point
-    }
+    colors :: [Color3 GLdouble]
+    colors = cycle [Color3 1 1 1, Color3 1 1 0, Color3 1 0 0, Color3 0 1 1]
 
 -----------------------------
 --
@@ -1552,17 +1358,10 @@ renderMonadius (Monadius (variables, objects)) = do
     renderGameObject DebugMessage {debugMessage = str} =
       putDebugStrLn str
     renderGameObject _ = return ()
-    vicViper =
-      fromJust $
-        find
-          ( \case
-              VicViper {} -> True
-              _ -> False
-          )
-          objects
+    vicViper = fromJust $ find isVicViper objects
 
     renderShape :: Complex GLdouble -> Shape -> IO ()
-    renderShape (x :+ y) s = case s of
+    renderShape (x :+ y) = \case
       Rectangular {bottomLeft = (l :+ b), topRight = (r :+ t)} ->
         renderPrimitive LineLoop $ vertices2D 0 [(x + l, y + b), (x + l, y + t), (x + r, y + t), (x + r, y + b)]
       Circular {center = cx :+ cy, radius = r} -> preservingMatrix $ do
@@ -1609,8 +1408,8 @@ renderMonadius (Monadius (variables, objects)) = do
     ugoVertices2D z r xys = ugoVertices2DFreq z r standardUgoInterval xys
     ugoVertices2DFreq z r intrvl xys = mapM_ (\(x, y) -> ugoVertexFreq x y z r intrvl) xys
 
-    vertices2D :: GLdouble -> [(GLdouble, GLdouble)] -> IO ()
-    vertices2D z xys = mapM_ (\(x, y) -> vertex $ Vertex3 x y z) xys
+vertices2D :: GLdouble -> [(GLdouble, GLdouble)] -> IO ()
+vertices2D z = mapM_ (\(x, y) -> vertex $ Vertex3 x y z)
 
 standardUgoInterval :: Int
 standardUgoInterval = 7

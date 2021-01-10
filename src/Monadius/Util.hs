@@ -28,7 +28,7 @@ isDebugMode :: Bool
 isDebugMode = False
 
 putDebugStrLn :: String -> IO ()
-putDebugStrLn str = when isDebugMode $ putStrLn str
+putDebugStrLn = when isDebugMode . putStrLn
 
 -- | Modify array 'a' at index 'i' by function 'f'
 modifyArray :: Ix i => i -> (e -> e) -> Array i e -> Array i e
